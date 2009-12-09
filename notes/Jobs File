@@ -1,0 +1,32 @@
+  Emil, Mikael and I (Jason) talked about a format for the job file that
+  describes how to execute a job; at first, I wanted to do a separate
+  configuration language but Mikael convinced me that we should just write the
+  jobs in Haskell.
+
+  A jobs files is a file containing a Haskell module that contains these
+  values:
+
+    generators              ::  [[(Label, Degree)]]
+    field                   ::  FieldSpec
+    order                   ::  Order
+
+  The generators are the names of terms in our basis that we start with with;
+  the field is describes the field we are working over and the order is how we
+  order the terms. The terms are in a lists of lists (or maybe it should be a
+  set of sets); the organization of terms into sublists expresses the
+  "grading" of the terms.
+
+  The `FieldSpec` is right now a simple data type of two constructors:
+
+    data FieldSpec           =  Finite Prime | Rationals
+
+    newtype Prime            =  Prime Integer
+    instance Num where
+      fromInteger n
+        | n == p             =  p  -- At compile time, fails for non-primes. 
+       where
+        p                    =  (head . dropWhile (< n)) Data.Numbers.Primes
+
+  The `FieldSpec` could be extended to support other fields although we might
+  have some trouble translating them for use with our Gröbner basis.
+
