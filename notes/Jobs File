@@ -18,7 +18,10 @@
 
   The `FieldSpec` is right now a simple data type of two constructors:
 
-    data FieldSpec           =  Finite Prime | Rationals
+    data FieldSpec           =  Finite Prime 
+                              | Rationals 
+                              | Real Precision
+                              | Complex Precision Label
 
     newtype Prime            =  Prime Integer
     instance Num where
@@ -27,6 +30,37 @@
        where
         p                    =  (head . dropWhile (< n)) Data.Numbers.Primes
 
+    data Precision           =  Single
+                              | Digits Int Int
+
+
   The `FieldSpec` could be extended to support other fields although we might
   have some trouble translating them for use with our Gröbner basis.
+
+  Orders are picked out from the order definitions in Singular; or
+  correspondingly from whichever backend package we end up using.
+
+  Referring to http://www.msri.org/about/computing/docs/singular/index.htm
+  we get hold of the existing term orders used by Singular, which motivate
+
+    data OrderSpec            =  Lexicographic
+                               | ReverseLexicographic
+                               | DegreeReverseLexicographic
+                               | DegreeLexicographic
+                               | WeightedReverseLexicographic [Natural]
+                               | WeightedLexicographic [Natural]
+                               | NegativeLexicographic
+                               | NegativeDegreeReverseLexicographic
+                               | NegativeDegreeLexicographic
+                               | GeneralWeightedReverseLexicographic [Integer]
+                               | GeneralWeightedLexicographic [Integer]
+                               | Matrix [[Integer]]
+
+    type Order                = [OrderSpec]
+
+    newtype Natural           = Natural Integer
+    instance Num where
+      fromInteger n
+       | n >= 0               = Natural n
+       | otherwise            = error "Naturals are non-negative"
 
