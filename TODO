@@ -1,0 +1,24 @@
+
+  Write bindings to Singular.
+
+    Are bindings thread safe?
+
+    Write bindings.
+
+
+  Write frontend.
+
+    Write types for the job file.
+
+    Write description of the jobs file.
+
+    Implement dynamic loading through GHC API.
+
+
+  Write parallelizer.
+
+    Figure how to go from grades to an execution tree.
+
+    Write some DPH and see how it turns out.
+
+
