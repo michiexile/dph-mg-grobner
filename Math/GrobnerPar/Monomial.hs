@@ -11,32 +11,22 @@ import Data.Word
 import Data.Monoid
 import Data.List
 
-data Monomial = M {
-      exponents :: [Word]
-    } deriving (Eq)
+data Monomial = M [Word] deriving (Eq)
+
+exponents :: Monomial -> [Word]
+exponents (M ws) = ws
 
 instance Monoid Monomial where
     mappend m n = M $ zipWith (+) (exponents m) (exponents n)
-    mempty = M $ repeat 0
-
-(.^) :: Monomial -> Word -> Monomial
-m .^ i = mconcat (replicate (fromIntegral i) m)
-
-(.*) :: Monomial -> Monomial -> Monomial
-m .* n = mappend m n
-
-infixr 8 .^
-infixr 7 .*
+    mempty = M $ replicate 10 0
 
 instance Show Monomial where
     show m = intercalate "*" $ buildString (exponents m) (map (:[]) ['a'..'z'] ++ map (("x" ++) . show) [(1::Word)..])
 
 buildString [] strs = []
-buildString (e:es) (s:strs) = if e > 0 then (s ++ "^" ++ show e) : buildString es strs else buildString es strs
-
-a = M [1,0,0]
-b = M [0,1,0]
-c = M [0,0,1]
+buildString (e:es) (s:strs) | e > 1 = (s ++ "^" ++ show e) : buildString es strs
+                            | e == 1 = s : buildString es strs
+                            | otherwise = buildString es strs
 
 class (Eq o) => MOrdering o where
     mcompare :: o -> Monomial -> Monomial -> Ordering
@@ -63,4 +53,22 @@ instance (MOrdering o) => Ord (OrderedMonomial o) where
 om :: MOrdering o => Monomial -> OrderedMonomial o
 om m = OM m mordering
 
+monomial :: MOrdering o => OrderedMonomial o -> Monomial
+monomial (OM m o) = m
 
+(.^) :: (MOrdering o) => OrderedMonomial o -> Word -> OrderedMonomial o
+(OM m o) .^ i = OM (mconcat (replicate (fromIntegral i) m)) o
+
+(.*) :: (MOrdering o) => OrderedMonomial o -> OrderedMonomial o -> OrderedMonomial o
+(OM m o) .* (OM n _) = OM (mappend m n) o
+
+totalDegree :: (MOrdering o) => OrderedMonomial o -> Word
+totalDegree (OM m _) = sum (exponents m)
+
+infixr 8 .^
+infixr 7 .*
+
+a = OM (M [1,0,0]) DRL
+b = OM (M [0,1,0]) DRL
+c = OM (M [0,0,1]) DRL
+one = OM (M [0,0,0]) DRL
