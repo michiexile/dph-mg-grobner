@@ -1,0 +1,12 @@
+Name:           GröbnerPar
+Version:        0.1
+Author:         Jason Dusek
+Author:         Emil Sköldberg
+Author:         Mikael Vejdemo-Johansson
+Build-Type:     Simple
+Cabal-Version:  >= 1.2
+
+
+library
+  build-depends:        base
+  exposed-modules:      Math.GröbnerPar
