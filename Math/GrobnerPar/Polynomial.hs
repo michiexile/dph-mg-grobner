@@ -30,6 +30,8 @@ instance (Num r, MOrdering o) => Show (Polynomial r o) where
 (*.) :: (Num r, MOrdering o) => OrderedMonomial o -> Polynomial r o -> Polynomial r o
 m *. p = P $ DM.mapKeys (.* m) (getMap p)
 
+infixr 5 *.
+
 instance (Num r, MOrdering o) => Num (Polynomial r o) where
 --  (+) :: Polynomial r o -> Polynomial r o -> Polynomial r o
   p + q = P $ DM.unionWith (+) (getMap p) (getMap q)
