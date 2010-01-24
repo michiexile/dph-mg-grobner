@@ -4,10 +4,10 @@ Author:         Jason Dusek
 Author:         Emil Sköldberg
 Author:         Mikael Vejdemo-Johansson
 Build-Type:     Simple
-Cabal-Version:  >= 1.2
+Cabal-Version:  >= 1.6
 
 
 library
-  build-depends:        base
+  build-depends:        base, primes
   exposed-modules:      Math.GrobnerPar
 
