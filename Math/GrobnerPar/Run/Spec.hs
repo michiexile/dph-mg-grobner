@@ -8,18 +8,21 @@ import Data.Word
 import qualified Data.Numbers.Primes
 
 import Math.GrobnerPar.Monomial
+import Math.GrobnerPar.Polynomial
 
 
 
 
-data Spec                    =  Spec [[Monomial]] Field Order
-deriving instance Show Spec
+data Spec ring order         =  Spec [[Polynomial ring order]] Field Order
+deriving instance
+  (Num ring, Show ring, Show order, Math.GrobnerPar.Monomial.MOrdering order)
+  => Show (Spec ring order)
 
 
 data Field                   =  Finite Prime
                              |  Rationals 
                              |  Real Precision
-                             |  Complex Precision Label
+                             |  Complex Precision
 deriving instance Show Field
 
 newtype Prime                =  Prime Integer
