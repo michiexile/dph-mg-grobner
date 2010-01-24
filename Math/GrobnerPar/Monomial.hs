@@ -1,4 +1,6 @@
--- | Monomial implementation for Math.GröbnerPar
+{-| Monomial implementation.
+ -}
+
 -- © 2010 Jason Dusek, Emil Sköldberg, Mikael Vejdemo-Johansson
 
 module Math.GrobnerPar.Monomial 
