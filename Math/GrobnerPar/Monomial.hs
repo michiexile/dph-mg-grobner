@@ -3,15 +3,16 @@
 
 -- © 2010 Jason Dusek, Emil Sköldberg, Mikael Vejdemo-Johansson
 
-module Math.GrobnerPar.Monomial 
-
-where
+module Math.GrobnerPar.Monomial where
 
 import Data.Array
 import Data.Ix
 import Data.Monoid
 import Data.List
 import Data.Word
+
+
+
 
 -- | Fundamental monomial type. A monomial is its sequence of exponents.
 data Monomial = M [Int] deriving (Eq)

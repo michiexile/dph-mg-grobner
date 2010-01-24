@@ -3,16 +3,18 @@
 
 -- © 2010 Jason Dusek, Emil Sköldberg, Mikael Vejdemo-Johansson
 
-module Math.GrobnerPar.Polynomial 
-
-where
+module Math.GrobnerPar.Polynomial where
 
 import Data.Map (Map, (!))
 import qualified Data.Map as DM
-import Math.GrobnerPar.Monomial
 import Data.List (intercalate)
 import Data.Monoid (mappend, mempty)
 import Data.Maybe (fromMaybe)
+
+import Math.GrobnerPar.Monomial
+
+
+
 
 -- | Fundamental type of a polynomial. It is carried, under the hood, by a Map, giving us nice complexity guarantees on finding the leading term and on various operations.
 data (Num r, MOrdering o) => Polynomial r o = P {
