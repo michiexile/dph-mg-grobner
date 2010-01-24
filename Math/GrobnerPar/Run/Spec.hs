@@ -7,18 +7,13 @@ import Data.Word
 
 import qualified Data.Numbers.Primes
 
+import Math.GrobnerPar.Monomial
 
 
 
-data Spec                    =  Spec [[(Label, Degree)]] Field Order
+
+data Spec                    =  Spec [[Monomial]] Field Order
 deriving instance Show Spec
-
-
-data Label                   =  Label
-deriving instance Show Label
-
-data Degree                  =  Degree
-deriving instance Show Degree
 
 
 data Field                   =  Finite Prime
