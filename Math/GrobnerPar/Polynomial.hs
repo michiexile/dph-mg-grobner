@@ -16,7 +16,10 @@ import Math.GrobnerPar.Monomial
 
 
 
--- | Fundamental type of a polynomial. It is carried, under the hood, by a Map, giving us nice complexity guarantees on finding the leading term and on various operations.
+{-| Fundamental type of a polynomial. It is carried, under the hood, by a Map,
+    giving us nice complexity guarantees on finding the leading term and on
+    various operations.
+ -}
 data (Num r, MOrdering o) => Polynomial r o = P {
       getMap :: Map (OrderedMonomial o) r
     } deriving (Eq, Ord)
@@ -33,7 +36,10 @@ instance (Num r, MOrdering o) => Show (Polynomial r o) where
                                          | value == fromInteger 1 = acc ++ [show key]
                                          | otherwise = acc ++ [show value ++ "*" ++ show key]
 
--- | Multiplying a polynomial by a single monomial. Will be used a lot in the Buchberger algorithm. The properties of MOrdering allows us to use mapKeysMonotonic.
+{-| Multiplying a polynomial by a single monomial. Will be used a lot in the
+    Buchberger algorithm. The properties of MOrdering allows us to use
+    mapKeysMonotonic.
+ -}
 (*.) :: (Num r, MOrdering o) => OrderedMonomial o -> Polynomial r o -> Polynomial r o
 m *. p = P $ DM.mapKeysMonotonic (.* m) (getMap p)
 
