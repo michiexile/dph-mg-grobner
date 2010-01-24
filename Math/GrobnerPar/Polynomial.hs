@@ -1,4 +1,6 @@
--- | Polynomial implementation for the GröbnerPar project
+{-| Polynomial implementation.
+ -}
+
 -- © 2010 Jason Dusek, Emil Sköldberg, Mikael Vejdemo-Johansson
 
 module Math.GrobnerPar.Polynomial 
