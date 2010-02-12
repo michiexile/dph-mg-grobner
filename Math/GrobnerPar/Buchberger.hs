@@ -7,6 +7,7 @@ where
 import Math.GrobnerPar.Monomial
 import Math.GrobnerPar.Polynomial
 import Data.List (nub)
+import Debug.Trace
 
 -- | Find the S-polynomial of f and g, defined as
 -- lcm(lt f, lt g)/lt f * f - lcm(lt f, lt g)/lt g * g
@@ -26,7 +27,7 @@ findSpolynomial f g | isZero f = 0
 -- | Find all S-polynomials of all pairs of the polynomials in the basis given in ps.
 findAllSpolynomials :: (Fractional r, MOrdering o) => 
                        [Polynomial r o] -> [Polynomial r o] -> [Polynomial r o]
-findAllSpolynomials olds news = nub $ do 
+findAllSpolynomials olds news = nub . filter (not . isZero) $ do 
                                   p <- olds ++ news
                                   q <- news
                                   return $ findSpolynomial p q
@@ -46,13 +47,17 @@ reducePolynomial p q | isZero p = 0
 -- | Reduce a polynomial wrt all polynomials in a set.
 reduceFull :: (Fractional r, MOrdering o) =>
               Polynomial r o -> [Polynomial r o] -> Polynomial r o
-reduceFull p qs = if null reducables 
+reduceFull p qs = if isZero p then p else
+                  if null reducables 
                   then p
                   else reduceFull (reducePolynomial p (head reducables)) qs
                       where
                         (headP, _) = leadingTerm p
-                        reducables = dropWhile ((`divides` headP) . fst . leadingTerm) qs
+                        reducables = dropWhile (not . (`divides` headP) . fst . leadingTerm) qs
 
+-- | Reduce all elements of ps completely vs. the generators in qs.
+reduceAllFull :: (Fractional r, MOrdering o) => 
+                 [Polynomial r o] -> [Polynomial r o] -> [Polynomial r o]
 reduceAllFull ps qs = nub . filter (not . isZero) $ map (flip reduceFull qs) ps
 
 -- | Stepping the Buchberger algorithm.
@@ -68,4 +73,4 @@ grobnerBasisStep old new = grobnerBasisStep old' new'
 -- | Generate S-polynomials and reduce them until no new non-reduceable S-polynomials appear.
 grobnerBasis :: (Fractional r, MOrdering o) =>
                 [Polynomial r o] -> [Polynomial r o]
-grobnerBasis gens = undefined
+grobnerBasis gens = grobnerBasisStep [] gens
