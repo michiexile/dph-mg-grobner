@@ -136,11 +136,6 @@ infixr 8 .^
 infixr 7 .*
 infixr 7 ./
 
-a = OM (M [1,0,0]) DRL
-b = OM (M [0,1,0]) DRL
-c = OM (M [0,0,1]) DRL
-one = OM (M [0,0,0]) DRL
-
 -- | GCD for monomials by taking min of each exponent.
 gcdM :: Monomial -> Monomial -> Monomial
 gcdM m n = M $ zipWith min (exponents m) (exponents n)
