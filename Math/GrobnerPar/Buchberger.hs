@@ -15,6 +15,7 @@ findSpolynomial :: (Fractional r, MOrdering o) =>
                    Polynomial r o -> Polynomial r o -> Polynomial r o
 findSpolynomial f g | isZero f = 0
                     | isZero g = 0
+                    | totalDegree (gcdOM lmf lmg) == 0 = 0
                     | otherwise = (lcmf *. f) - (lcmg *. ((constantTerm c) * g))
                       where
                         (lmf, lcf) = leadingTerm f
