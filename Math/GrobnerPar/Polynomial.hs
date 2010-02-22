@@ -10,6 +10,7 @@ import qualified Data.Map as DM
 import Data.List (intercalate)
 import Data.Monoid (mappend, mempty)
 import Data.Maybe (fromMaybe)
+import Control.Monad (guard)
 
 import Math.GrobnerPar.Monomial
 
@@ -22,7 +23,7 @@ import Math.GrobnerPar.Monomial
  -}
 data (Num r, MOrdering o) => Polynomial r o = P {
       getMap :: Map (OrderedMonomial o) r
-    } deriving (Eq, Ord)
+    } deriving (Eq,Ord)
 
 -- | Pretty printing of polynomials.
 instance (Num r, MOrdering o) => Show (Polynomial r o) where
@@ -53,13 +54,13 @@ instance (Num r, MOrdering o) => Num (Polynomial r o) where
 --  (+) :: Polynomial r o -> Polynomial r o -> Polynomial r o
   p + q = removeNulls $ P $ DM.unionWith (+) (getMap p) (getMap q)
 --  (*) :: Polynomial r o -> Polynomial r o -> Polynomial r o
-  p * q = removeNulls $ P $ DM.fromListWith (+) $ do
-            (pm,pc) <- pL
-            (qm,qc) <- qL
-            return (pm .* qm, pc * qc)
-                where
-                  pL = DM.toList . getMap $ p
-                  qL = DM.toList . getMap $ q
+  p * q = removeNulls $ sum $ do 
+            (pm, pc) <- pL
+            guard (pc /= 0)
+            return $ (pm *.) . P . DM.map (pc*) $ qL
+                   where
+                     pL = DM.toList . getMap $ p
+                     qL = getMap q
 --  (-) :: Polynomial r o -> Polynomial r o -> Polynomial r o
   p - q = p + (negate q)
 --  negate :: Polynomial r o -> Polynomial r o
