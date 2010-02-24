@@ -56,7 +56,7 @@ allBidegrees n = [(k,n-k) | k <- [0..n]]
 grobnerStep :: (MOrdering o, Fractional r) =>
                Int -> [Polynomial r o] -> [Polynomial r o]
 grobnerStep d basis = nub . filter (not . isZero) $
-                      concatMap (\bd -> trace ("Treating degree: " ++ show bd ++ "\n") $ 
+                      concatMap (\bd -> --trace ("Treating degree: " ++ show bd ++ "\n") $ 
                                         grobnerBasisConditional (testFixedBidegree bd) basis) 
                                 (allBidegrees d)
 

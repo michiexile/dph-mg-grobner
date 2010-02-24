@@ -46,7 +46,7 @@ findAllSpolynomialsConditional psi olds news = nub . filter (not . isZero) $ do
                                   p <- olds ++ news
                                   q <- news
                                   guard $ psi p q
-                                  return $ findSpolynomial p q
+                                  return $ findSpolynomialConditional psi p q
 
 findAllSpolynomials :: (Fractional r, MOrdering o) => 
                                   [Polynomial r o] -> [Polynomial r o] -> [Polynomial r o]

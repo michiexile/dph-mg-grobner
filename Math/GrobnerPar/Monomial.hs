@@ -25,8 +25,17 @@ exponents (M ws) = ws
 -- randomly assumes some arbitrary number of variables in the
 -- polynomial ring. This is probably bad.
 instance Monoid Monomial where
-    mappend m n = M $ zipWith (+) (exponents m) (exponents n)
-    mempty = M $ replicate 10 0
+    mappend m n = M $ zipWith (+) (exm) (exn)
+                  where
+                    em = exponents m
+                    en = exponents n
+                    nm = length em
+                    nn = length en
+                    npn = max 0 (nm - nn)
+                    npm = max 0 (nn - nm)
+                    exm = em ++ replicate npm 0
+                    exn = en ++ replicate npn 0
+    mempty = M [0]
 
 -- | Show instance for Monomial. This currently mandates the variable
 -- names a, b, c, ..., z, x1, x2, x3, x4, ..., x47, x48, ..., x1729,
