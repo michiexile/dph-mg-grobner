@@ -8,11 +8,6 @@ import Math.GrobnerPar.Polynomial
 
 import System.Environment
 
-ej n j | j < 0 = replicate n 0
-       | j > n = replicate n 0
-       | otherwise = replicate (j-1) 0 ++ [1] ++ replicate (n-j) 0
-
-nVars n = map (monomialTerm . om . M . ej n) [1..n]
 
 cyclicNroots :: Int -> [Polynomial Rational Lex]
 cyclicNroots n = product (nVars n) - 1 : lowerTerms
