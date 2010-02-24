@@ -7,6 +7,8 @@ import Math.GrobnerPar.Monomial
 import Math.GrobnerPar.Polynomial
 
 import Data.Array
+import Data.List (nub)
+import Debug.Trace
 
 import System.Environment
 
@@ -29,14 +31,44 @@ commutingMatrices n =
                                       return ((yarr!(i,k)) * (xarr!(k,j)))
         in zipWith (-) (elems xyarr) (elems yxarr)
 
-ej n j | j < 0 = replicate n 0
-       | j > n = replicate n 0
-       | otherwise = replicate (j-1) 0 ++ [1] ++ replicate (n-j) 0
+biDegreeOM :: (MOrdering o) => 
+            OrderedMonomial o -> (Int, Int)
+biDegreeOM m = (sum . take k $ ex, sum . drop k $ ex) 
+             where
+               ex = exponents . monomial $ m
+               k = (length ex) `div` 2
 
-nVars n = map (monomialTerm . om . M . ej n) [1..n]
+biDegree :: (MOrdering o, Num r) =>
+            Polynomial r o -> (Int, Int)
+biDegree = biDegreeOM . fst . leadingTerm
 
+testFixedBidegree :: (MOrdering o, Num r) =>
+                      (Int, Int) -> Polynomial r o -> Polynomial r o -> Bool
+testFixedBidegree (x,y) p q = (x,y) == (biDegreeOM lcmPQ) 
+                               where
+                                 (lP,_) = leadingTerm p
+                                 (lQ,_) = leadingTerm q
+                                 lcmPQ = lcmOM lP lQ
+
+allBidegrees :: Int -> [(Int, Int)]
+allBidegrees n = [(k,n-k) | k <- [0..n]]
+
+grobnerStep :: (MOrdering o, Fractional r) =>
+               Int -> [Polynomial r o] -> [Polynomial r o]
+grobnerStep d basis = nub . filter (not . isZero) $
+                      concatMap (\bd -> trace ("Treating degree: " ++ show bd ++ "\n") $ 
+                                        grobnerBasisConditional (testFixedBidegree bd) basis) 
+                                (allBidegrees d)
+
+grobnerAcc :: (MOrdering o, Fractional r) =>
+           Int -> [Polynomial r o] -> [Polynomial r o]
+grobnerAcc curDeg basis | curDeg > maxDeg = basis
+                        | otherwise = grobnerAcc (curDeg+1) newBasis
+    where
+      maxDeg = maximum (map (totalDegree . fst . leadingTerm) basis)
+      newBasis = nub . filter (not . isZero) $ basis ++ grobnerStep curDeg basis
 
 main = do
   argv <- getArgs
   putStrLn . unlines . map show $
-           grobnerBasis (commutingMatrices (read (head argv)))
+           grobnerAcc 0 (commutingMatrices (read (head argv)))

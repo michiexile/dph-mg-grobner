@@ -54,7 +54,7 @@ instance (Num r, MOrdering o) => Num (Polynomial r o) where
 --  (+) :: Polynomial r o -> Polynomial r o -> Polynomial r o
   p + q = removeNulls $ P $ DM.unionWith (+) (getMap p) (getMap q)
 --  (*) :: Polynomial r o -> Polynomial r o -> Polynomial r o
-  p * q = removeNulls $ sum $ do 
+  p * q = sum $ do 
             (pm, pc) <- pL
             guard (pc /= 0)
             return $ (pm *.) . P . DM.map (pc*) $ qL
@@ -87,3 +87,9 @@ monomialTerm m = P $ DM.fromList [(m, 1)]
 
 isZero :: (Num r, MOrdering o) => Polynomial r o -> Bool
 isZero = (0 ==) . snd . leadingTerm 
+
+ej n j | j < 0 = replicate n 0
+       | j > n = replicate n 0
+       | otherwise = replicate (j-1) 0 ++ [1] ++ replicate (n-j) 0
+
+nVars n = map (monomialTerm . om . M . ej n) [1..n]
