@@ -13,4 +13,4 @@ g2 = a^3-c^2
 gens = [g1,g2]
 
 main = do
-       putStrLn $ unlines $ map show $ grobnerBasis gens
+       putStrLn $ unlines $ map show $ grobnerBasis (const 0) id gens

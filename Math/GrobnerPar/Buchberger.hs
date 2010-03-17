@@ -6,7 +6,8 @@ where
 
 import Math.GrobnerPar.Monomial
 import Math.GrobnerPar.Polynomial
-import Data.List (nub)
+import Data.List (nub, minimumBy)
+import qualified Data.Map as M
 import Control.Monad (guard)
 
 import Debug.Trace
@@ -80,6 +81,51 @@ reduceAllFull :: (Fractional r, MOrdering o) =>
                  [Polynomial r o] -> [Polynomial r o] -> [Polynomial r o]
 reduceAllFull ps qs = nub . filter (not . isZero) $ map (flip reduceFull qs) ps
 
+
+-- | Data type for the state of a buchberger computation
+data Buchberger r o i =
+    Buchberger {
+                -- | The GB elements so far
+                irrPols :: [Polynomial r o],
+                -- | The latest additions to the GB
+                newPols :: [Polynomial r o],
+                -- | S-polynomials yet to be reduced, sorted by fine grading
+                todo    :: M.Map i [Polynomial r o],
+                -- | A fine grading of the polynomials. e.g. bigrading
+                grading :: Polynomial r o -> i,
+                -- | The minimal degrees in a list of degrees
+                minElts :: [i] -> [i]
+               }
+
+
+-- | Reduce the S-polynomials in the minimal degrees and update GB
+buchbergerRedStep :: (Fractional r, MOrdering o, Ord i, Show i) =>
+                     Buchberger r o i -> Buchberger r o i
+
+buchbergerRedStep state =
+    if (M.null (todo state)) && (null (newPols state))
+    then state
+    else buchbergerGenStep $
+         state {irrPols = irrPols state ++ newIrrs,
+                newPols = newIrrs,
+                todo    = wait}
+        where minDegs = minElts state $ M.keys $ todo state
+              (now, wait) = M.partitionWithKey (\k _ -> k `elem` minDegs) $
+                            todo state
+              newIrrs = concat $ map (flip reduceAllFull (irrPols state)) $
+                        M.elems now
+
+-- | Generate the S-polynomials that appear from the updated GB
+buchbergerGenStep :: (Fractional r, MOrdering o, Ord i, Show i) =>
+                     Buchberger r o i -> Buchberger r o i
+
+buchbergerGenStep state =
+    let spols = findAllSpolynomials (irrPols state) (newPols state)
+        spolsWithDeg = map (\p -> (grading state p, [p])) spols
+        todo' = M.fromListWith (++) spolsWithDeg
+        in buchbergerRedStep
+           state {todo = M.unionWith (++) (todo state) todo'}
+
 -- | Stepping the Buchberger algorithm, conditional on the predicate
 -- psi. This allows us to halt the computation if we want to.
 grobnerBasisStepConditional :: (Fractional r, MOrdering o) =>
@@ -91,8 +137,8 @@ grobnerBasisStepConditional psi old [] = old
 grobnerBasisStepConditional psi old new = grobnerBasisStep old' new'
     where
                              newSps = findAllSpolynomialsConditional psi old new
-                             newolds = reduceAllFull new old
-                             new' = reduceAllFull newSps (old ++ new)
+                             newolds = trace "Type 1 " $ reduceAllFull new old
+                             new' = trace "Type 2" $ reduceAllFull newSps (old ++ new)
                              old' = old ++ newolds
 
 grobnerBasisStep :: (Fractional r, MOrdering o) =>
@@ -107,6 +153,13 @@ grobnerBasisConditional :: (Fractional r, MOrdering o) =>
                            [Polynomial r o] -> [Polynomial r o]
 grobnerBasisConditional psi gens = grobnerBasisStepConditional psi [] gens
 
-grobnerBasis :: (Fractional r, MOrdering o) =>
+grobnerBasis :: (Fractional r, MOrdering o, Ord i, Show i) =>
+                (Polynomial r o -> i) -> ([i] -> [i]) ->
                 [Polynomial r o] -> [Polynomial r o]
-grobnerBasis = grobnerBasisConditional (const (const True))
+
+grobnerBasis degFun minFun pols =
+    irrPols $ buchbergerGenStep (Buchberger {irrPols = pols,
+                                             newPols = pols,
+                                             todo    = M.empty,
+                                             grading = degFun,
+                                             minElts = minFun})
