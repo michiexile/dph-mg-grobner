@@ -19,4 +19,5 @@ cyclicNroots n = product (nVars n) - 1 : lowerTerms
 
 main = do
   argv <- getArgs
-  putStrLn . unlines . map show $ grobnerBasis (cyclicNroots (read (head argv)))
+  putStrLn . unlines . map show $
+       grobnerBasis (const 0) id (cyclicNroots (read (head argv)))
