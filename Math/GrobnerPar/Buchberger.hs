@@ -12,6 +12,7 @@ import qualified Data.Map as M
 import Control.Monad (guard)
 
 import qualified Data.Array.Parallel.Prelude as DPH
+import GHC.PArr
 
 import Debug.Trace
 
@@ -101,12 +102,6 @@ data Buchberger r o i =
                }
 
 
--- | Convert a list to a parallel list
-toListP l = DPH.mapP (l!!) ([: 0 .. length l - 1 :])
-
--- | Convert a parallel list to a list
-fromListP l = map ((DPH.!:) l) [0 .. DPH.lengthP l - 1]
-
 -- | Reduce the S-polynomials in the minimal degrees and update GB
 buchbergerRedStep :: (Fractional r, MOrdering o, Ord i, Show i) =>
                      Buchberger r o i -> Buchberger r o i
@@ -122,9 +117,9 @@ buchbergerRedStep state =
               (now, wait) = M.partitionWithKey (\k _ -> k `elem` minDegs) $
                             todo state
               newIrrs = concat $ 
-                        fromListP $
+                        fromP $
                         DPH.mapP (flip reduceAllFull (irrPols state)) $
-                        toListP $
+                        toP $
                         M.elems now
 
 -- | Generate the S-polynomials that appear from the updated GB
