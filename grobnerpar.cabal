@@ -8,21 +8,21 @@ Cabal-Version:  >= 1.6
 
 
 library
-  build-depends:        base,array,containers
+  build-depends:        base,array,containers,dph-par
   exposed-modules:      Math.GrobnerPar
   ghc-options:          -O -threaded
 
 executable First
   main-is:              examples/First.hs
-  build-depends:        base,array,containers
+  build-depends:        base,array,containers,dph-par
   ghc-options:          -O -threaded
 
 executable Cyclic
   main-is:              examples/Cyclic.hs
-  build-depends:        base,array,containers
+  build-depends:        base,array,containers,dph-par
   ghc-options:          -O -threaded
 
 executable CommutingMatrices
   main-is:              examples/CommutingMatrices.hs
-  build-depends:        base,array,containers
+  build-depends:        base,array,containers,dph-par
   ghc-options:          -O -threaded
