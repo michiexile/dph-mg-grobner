@@ -1,3 +1,4 @@
+{-# LANGUAGE PArr, ParallelListComp #-}
 -- | Implementation of the Buchberger algorithm for the GrobnerPar project.
 -- © 2010 Jason Dusek, Emil Sköldberg, Mikael Vejdemo-Johansson
 
@@ -9,6 +10,8 @@ import Math.GrobnerPar.Polynomial
 import Data.List (nub, minimumBy)
 import qualified Data.Map as M
 import Control.Monad (guard)
+
+import qualified Data.Array.Parallel.Prelude as DPH
 
 import Debug.Trace
 
@@ -98,6 +101,12 @@ data Buchberger r o i =
                }
 
 
+-- | Convert a list to a parallel list
+toListP l = DPH.mapP (l!!) ([: 0 .. length l - 1 :])
+
+-- | Convert a parallel list to a list
+fromListP l = map ((DPH.!:) l) [0 .. DPH.lengthP l - 1]
+
 -- | Reduce the S-polynomials in the minimal degrees and update GB
 buchbergerRedStep :: (Fractional r, MOrdering o, Ord i, Show i) =>
                      Buchberger r o i -> Buchberger r o i
@@ -112,7 +121,10 @@ buchbergerRedStep state =
         where minDegs = minElts state $ M.keys $ todo state
               (now, wait) = M.partitionWithKey (\k _ -> k `elem` minDegs) $
                             todo state
-              newIrrs = concat $ map (flip reduceAllFull (irrPols state)) $
+              newIrrs = concat $ 
+                        fromListP $
+                        DPH.mapP (flip reduceAllFull (irrPols state)) $
+                        toListP $
                         M.elems now
 
 -- | Generate the S-polynomials that appear from the updated GB
