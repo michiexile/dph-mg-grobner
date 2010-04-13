@@ -46,8 +46,21 @@ minBiDegs :: [(Int, Int)] -> [(Int, Int)]
 minBiDegs xs = filter (\ (i, j) -> i + j == minDeg xs) xs
     where minDeg xs = minimum $ map (\ (i, j) -> i + j) xs
 
+totalDegreeFilter :: (MOrdering o, Num r) =>
+                     Int -> (Polynomial r o) -> Bool
+
+totalDegreeFilter n p = (<= n) . totalDegree $ ltP
+           where
+             ltP = (fst . leadingTerm $ p) 
+
 main = do
   argv <- getArgs
+  let
+         mSize = read (head argv)
+         spCond | length argv == 1 = (const True)
+                | otherwise = totalDegreeFilter maxD
+             where
+               maxD = read (argv!!1)
   putStrLn . unlines . map show $
-           grobnerBasis biDegree minBiDegs
-                            (commutingMatrices (read (head argv)))
+           grobnerBasisConditional biDegree minBiDegs spCond
+                            (commutingMatrices mSize)
