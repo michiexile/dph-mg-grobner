@@ -15,7 +15,7 @@ import Data.Word
 
 
 -- | Fundamental monomial type. A monomial is its sequence of exponents.
-data Monomial = M [Int] deriving (Eq)
+newtype Monomial = M [Int] deriving (Eq)
 
 -- | Retrieve the sequence of exponents from a monomial.
 exponents :: Monomial -> [Int]
