@@ -8,17 +8,18 @@ module Math.GrobnerPar.Monomial where
 import Data.Array
 import Data.Ix
 import Data.Monoid
-import Data.List
+import Data.List (intercalate)
+import qualified Data.List as L
 import Data.Word
-
-
-
+import Data.Vector.Primitive
+import Prelude hiding (zipWith, (++), (!!), head, null, dropWhile, replicate, map, sum, all, length, reverse)
+import qualified Prelude as P
 
 -- | Fundamental monomial type. A monomial is its sequence of exponents.
-newtype Monomial = M [Int] deriving (Eq)
+data Monomial = M ! (Vector Int) deriving (Eq)
 
 -- | Retrieve the sequence of exponents from a monomial.
-exponents :: Monomial -> [Int]
+exponents :: Monomial -> Vector Int
 exponents (M ws) = ws
 
 -- | Monoid instance for Monomial. Note that the mempty implementation
@@ -35,19 +36,22 @@ instance Monoid Monomial where
                     npm = max 0 (nn - nm)
                     exm = em ++ replicate npm 0
                     exn = en ++ replicate npn 0
-    mempty = M [0]
+    mempty = M (singleton 0)
 
 -- | Show instance for Monomial. This currently mandates the variable
 -- names a, b, c, ..., z, x1, x2, x3, x4, ..., x47, x48, ..., x1729,
 -- x1730, ...
 -- This too is probably bad.
 instance Show Monomial where
-    show m = intercalate "*" $ buildString (exponents m) (map (:[]) ['a'..'z'] ++ map (("x" ++) . show) [(1::Int)..])
+    show m = intercalate "*" $ 
+             buildString 
+             (toList (exponents m)) 
+             ((L.++) ((L.map (L.replicate 1) ['a'..'z'])) (L.map (((L.++) "x") . show) [(1::Int)..]))
 
 buildString [] strs = []
-buildString (e:es) (s:strs) | e > 1 = (s ++ "^" ++ show e) : buildString es strs
-                            | e == 1 = s : buildString es strs
-                            | e < 0 = (s ++ "^" ++ show e) : buildString es strs
+buildString (e:es) (s:strs) | e > 1 = L.concat [s,"^",show e,buildString es strs]
+                            | e == 1 = L.concat [s,buildString es strs]
+                            | e < 0 = L.concat [s,"^",show e,buildString es strs]
                             | otherwise = buildString es strs
 
 -- | Fundamental typeclass for monomial orderings.
@@ -98,7 +102,7 @@ instance MOrdering Lex where
 
 
 -- | Ordered monomials are monomials with an attached ordering.
-data (MOrdering o) => OrderedMonomial o = OM Monomial o deriving (Eq)
+data (MOrdering o) => OrderedMonomial o = OM ! Monomial o deriving (Eq)
 
 -- | Show instance hides the order for human legibility. Do we maybe
 -- want to use a prettyprinter interface instead and derive all show instances?

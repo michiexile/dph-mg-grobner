@@ -91,17 +91,17 @@ reduceAllFull ps qs = nub . filter (not . isZero) $ map (flip reduceFull qs) ps
 data Buchberger r o i =
     Buchberger {
                 -- | The GB elements so far
-                irrPols :: [Polynomial r o],
+                irrPols :: ! [Polynomial r o],
                 -- | The latest additions to the GB
-                newPols :: [Polynomial r o],
+                newPols :: ! [Polynomial r o],
                 -- | S-polynomials yet to be reduced, sorted by fine grading
-                todo    :: M.Map i [Polynomial r o],
+                todo    :: ! (M.Map i [Polynomial r o]),
                 -- | A fine grading of the polynomials. e.g. bigrading
-                grading :: Polynomial r o -> i,
+                grading :: ! (Polynomial r o -> i),
                 -- | The minimal degrees in a list of degrees
-                minElts :: [i] -> [i],
+                minElts :: ! ([i] -> [i]),
                 -- | Selection function for S-polynomials to consider, for partial computations
-                pCondition :: (Polynomial r o -> Bool)
+                pCondition :: ! (Polynomial r o -> Bool)
                }
 
 
