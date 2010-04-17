@@ -22,7 +22,7 @@ import Math.GrobnerPar.Monomial
     various operations.
  -}
 data (Num r, MOrdering o) => Polynomial r o = P {
-      getMap :: Map (OrderedMonomial o) r
+      getMap :: ! (Map (OrderedMonomial o) r)
     } deriving (Eq,Ord)
 
 -- | Pretty printing of polynomials.
