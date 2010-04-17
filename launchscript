@@ -1,0 +1,11 @@
+#!/bin/sh
+
+apt-get update && wait 10
+apt-get install mercurial ghc
+cd /tmp
+wget http://www.haskell.org/ghc/dist/6.12.1/ghc-6.12.1-x86_64-unknown-linux-n.tar.bz2
+tar -xjf ghc-6.12.1-x86_64-unknown-linux-n.tar.bz2
+cd ghc-6.12.1
+./configure --prefix=/usr/local
+make install
+
