@@ -8,10 +8,9 @@ module Math.GrobnerPar.Monomial where
 import Data.Array
 import Data.Ix
 import Data.Monoid
-import Data.List (intercalate)
 import qualified Data.List as L
 import Data.Word
-import Data.Vector.Primitive
+import Data.Vector
 import Prelude hiding (zipWith, (++), (!!), head, null, dropWhile, replicate, map, sum, all, length, reverse)
 import qualified Prelude as P
 
@@ -43,15 +42,16 @@ instance Monoid Monomial where
 -- x1730, ...
 -- This too is probably bad.
 instance Show Monomial where
-    show m = intercalate "*" $ 
+    show m = L.intercalate "*" $ 
              buildString 
              (toList (exponents m)) 
              ((L.++) ((L.map (L.replicate 1) ['a'..'z'])) (L.map (((L.++) "x") . show) [(1::Int)..]))
 
+buildString :: [Int] -> [String] -> [String]
 buildString [] strs = []
-buildString (e:es) (s:strs) | e > 1 = L.concat [s,"^",show e,buildString es strs]
-                            | e == 1 = L.concat [s,buildString es strs]
-                            | e < 0 = L.concat [s,"^",show e,buildString es strs]
+buildString (e:es) (s:strs) | e > 1 = (L.concat [s,"^",show e]) : (buildString es strs)
+                            | e == 1 = s : buildString es strs
+                            | e < 0 = (L.concat [s,"^",show e]) : (buildString es strs)
                             | otherwise = buildString es strs
 
 -- | Fundamental typeclass for monomial orderings.
@@ -123,7 +123,7 @@ monomial (OM m o) = m
 
 -- | Integral exponentiation for ordered monomials.
 (.^) :: (MOrdering o) => OrderedMonomial o -> Word -> OrderedMonomial o
-(OM m o) .^ i = OM (mconcat (replicate (fromIntegral i) m)) o
+(OM m o) .^ i = OM (mconcat (L.replicate (fromIntegral i) m)) o
 
 -- | Multiplication of ordered monomials.
 (.*) :: (MOrdering o) => OrderedMonomial o -> OrderedMonomial o -> OrderedMonomial o

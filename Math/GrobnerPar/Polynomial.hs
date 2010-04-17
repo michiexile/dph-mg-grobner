@@ -11,6 +11,7 @@ import Data.List (intercalate)
 import Data.Monoid (mappend, mempty)
 import Data.Maybe (fromMaybe)
 import Control.Monad (guard)
+import qualified Data.Vector as V
 
 import Math.GrobnerPar.Monomial
 
@@ -88,8 +89,8 @@ monomialTerm m = P $ DM.fromList [(m, 1)]
 isZero :: (Num r, MOrdering o) => Polynomial r o -> Bool
 isZero = (0 ==) . snd . leadingTerm 
 
-ej n j | j < 0 = replicate n 0
-       | j > n = replicate n 0
-       | otherwise = replicate (j-1) 0 ++ [1] ++ replicate (n-j) 0
+ej n j | j < 0 = V.replicate n 0
+       | j > n = V.replicate n 0
+       | otherwise = (V.++) ((V.++) (V.replicate (j-1) 0) (V.singleton 1)) (V.replicate (n-j) 0)
 
 nVars n = map (monomialTerm . om . M . ej n) [1..n]

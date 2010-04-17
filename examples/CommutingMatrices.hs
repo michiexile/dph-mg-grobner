@@ -6,6 +6,8 @@ import Math.GrobnerPar.Buchberger
 import Math.GrobnerPar.Monomial
 import Math.GrobnerPar.Polynomial
 
+import qualified Data.Vector as Vector
+
 import Data.Array
 import Data.List (nub)
 import Debug.Trace
@@ -33,9 +35,9 @@ commutingMatrices n =
 
 
 biDegreeOM :: (MOrdering o) => OrderedMonomial o -> (Int, Int)
-biDegreeOM m = (sum . take k $ ex, sum . drop k $ ex) 
+biDegreeOM m = (sum . take k $  ex, sum . drop k $ ex) 
              where
-               ex = exponents . monomial $ m
+               ex = Vector.toList . exponents . monomial $ m
                k = (length ex) `div` 2
 
 biDegree :: (MOrdering o, Num r) => Polynomial r o -> (Int, Int)
