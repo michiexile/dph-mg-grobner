@@ -5,7 +5,7 @@ from sqlalchemy import *
 
 class sql:
     def __init__(self):
-        self.engine = create_engine("sqlite:////tmp/mpigrobner.db", echo=False)
+        self.engine = create_engine("sqlite:////tmp/mpigrobner.db", echo=True)
         self.metadata = MetaData()
         self.stable = Table('stable', self.metadata, 
                        Column('id', Integer, primary_key=True),
@@ -19,18 +19,17 @@ class sql:
         self.metadata.bind = self.engine
 
     def storeStable(self,fs):
-        inserts = map(lambda f: {'degree': str(multidegree(f)), 'poly': f},fs)
+        inserts = map(lambda f: {'degree': repr(multidegree(f)), 'poly': f},fs)
         self.stable.insert().execute(inserts)
 
     def storeNew(self, fs):
-        inserts = map(lambda f: {'degree': str(multidegree(f)), 'poly': f},fs)
+        inserts = map(lambda f: {'degree': repr(multidegree(f)), 'poly': f},fs)
         self.new.insert().execute(inserts)
 
 
     def loadStable(self,deg):
-        select = self.stable.select()
-        select.where(self.stable.c.degree == str(deg))
-        selects = select.execute()
+        sel = select([self.stable.c.poly],self.stable.c.degree == repr(deg))
+        selects = sel.execute()
         ret = [s[self.stable.c.poly] for s in selects]
         selects.close()
         return ret
@@ -39,14 +38,30 @@ class sql:
         ret = []
         for d in degreeIdeal(deg):
             if d != deg:
-                ret.extend(loadStable(d))
+                ret.extend(self.loadStable(d))
         return ret
 
     def loadNew(self,deg):
-        select = self.new.select([])
-        select.where(self.new.c.degree == str(deg))
-        selects = select.execute()
+        sel = select([self.new.c.poly],self.new.c.degree == repr(deg))
+        print sel
+        selects = sel.execute()
         ret = [s[self.new.c.poly] for s in selects]
         selects.close()
         return ret
 
+    def dropStable(self, fs):
+        for f in fs:
+            delQ = self.stable.delete(self.stable.c.poly == f)
+            delQ.execute()
+
+    def dropNew(self, fs):
+        for f in fs:
+            delQ = self.new.delete(self.new.c.poly == f)
+            delQ.execute()
+
+    def findMinimal(self):
+        sel = select([self.new.c.degree],distinct=True)
+        degs = sel.execute()
+        totdegs = [sum(eval(d[self.new.c.degree])) for d in degs]
+        degs.close()
+        return min(totdegs)
