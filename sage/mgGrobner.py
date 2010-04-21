@@ -12,12 +12,13 @@ def sPoly(f, g):
     return xf.reduce([g])
     
 
-def generateSPolys(olds, news):
+def generateSPolys(totals, news):
     for f in news:
-        for g in olds + news:
+        for g in totals:
             yield sPoly(f,g)
 
 def bidegree(mon):
+    if mon==0: return (0,0)
     exp = mon.exponents()[0]
     lexp = len(exp)
     nx = int(lexp/2)
@@ -29,7 +30,7 @@ def bidegree(mon):
 multidegree=bidegree
 
 def degreeIdeal(deg,minDeg=0):
-    ret = []
+    ret = [deg]
     for t in range(minDeg, sum(deg)):
         ret.extend(list(IntegerListsLex(t,length=len(deg),ceiling=list(deg))))
     return ret
