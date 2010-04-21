@@ -5,7 +5,7 @@ from mpi4py import MPI
 import mpiGrobner
 import commutingMatrices
 
-(R, gens) = commutingMatrices.start(3)
+(R, gens) = commutingMatrices.start(2)
 
 def main():
     comm = MPI.COMM_WORLD
