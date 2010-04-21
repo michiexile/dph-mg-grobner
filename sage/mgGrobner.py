@@ -25,7 +25,7 @@ def bidegree(mon):
     ny = lexp-nx
     xexp = exp[0:nx]
     yexp = exp[nx:]
-    return (sum(xexp),sum(yexp))
+    return [sum(xexp),sum(yexp)]
 
 multidegree=bidegree
 
