@@ -29,36 +29,41 @@ class grobner:
         while True:
             status = MPI.Status()
             self.comm.send(None,dest=0,tag=REQUEST_NEW_DEGREE)
-            degree = self.comm.recv(source=0,tag=NEW_DEGREE,status=status)
+            degree = self.comm.recv(source=0,tag=MPI.ANY_TAG,status=status)
             if status.Get_tag() == SYNC:
-                degree = self.comm.recv(source=0,tag=NEW_DEGREE,status=status)
+                print "Waiting to sync..."
+                degree = self.comm.recv(source=0,tag=MPI.ANY_TAG,status=status)
                 if status.Get_tag() == FINISH:
+                    print "Finishing..."
                     return
+            if status.Get_tag() == NEW_DEGREE:
+                self.nodeWork(degree)
 
-            degree = tuple(degree)
+    def nodeWork(self, degree):
+        candidates = self.sql.loadNew(degree)
+        gb = self.sql.loadStableBelow(degree)
+        
+        print "Computation on degree %s" % repr(degree)
+        doneList = []
 
-            candidates = self.sql.loadNew(degree)
-            gb = self.sql.loadStableBelow(degree)
+        for c in candidates:
+            #print "\tReducing: %s" % repr(c)
+            #print "\tUsing: %s" % repr(gb)
+            cc = c.reduce(gb)
+            #print "\tTo: %s" % repr(cc)
+            if cc == 0: 
+                continue
 
-            print "Computation on degree %s" % repr(degree)
-            doneList = []
+            gb.append(cc)
+            doneList.append(cc)
 
-            for c in candidates:
-                print "\tReducing: %s" % repr(c)
-                print "\tUsing: %s" % repr(gb)
-                cc = c.reduce(gb)
-                print "\tTo: %s" % repr(cc)
-                if cc != 0:
-                    gb.append(cc)
-                    lms = self.sql.storeStable([cc])
-                    doneList.extend(lms)
+        lms = self.sql.storeStable(doneList)
+        self.sql.dropNew([degree])
 
-            self.sql.dropNew([degree])
+        print "\tNew GB elements: %d" % len(lms)
+        
+        self.comm.send(lms, dest=0, tag=NEW_GB_DEPOSITED)
             
-            print "Monomials added to GB: %s" % repr(doneList)
-
-            self.comm.send(doneList, dest=0, tag=NEW_GB_DEPOSITED)
-
 
     def control(self):
         print "I'm control. We'll deal with: %s" % repr(self.gens)
@@ -90,7 +95,7 @@ class grobner:
                             break
                     elif tag == NEW_GB_DEPOSITED:
                         print "Queueing up for new S-polynomial generation"
-                        print "\tReceived new GB list: %s" % repr(data)
+                        #print "\tReceived new GB list: %s" % repr(data)
                         newPolys = self.sql.loadStableByLM(map(eval,data))
                         print "\tNew GB elements: %d" % len(newPolys)
                         totalPolys = self.sql.loadStableAll()
@@ -118,6 +123,8 @@ class grobner:
                         print "FINISH IT!"
                         for dest in waitingQ:
                             self.comm.send(None, dest=dest, tag=FINISH)
+                        gb = self.sql.loadStableAll()
+                        print gb
                         return
                     # Cause the Node to block, waiting for a NEW_DEGREE or a FINISH
                     # message later on. 
