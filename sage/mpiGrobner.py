@@ -12,6 +12,14 @@ NEW_GB_DEPOSITED = 2
 SYNC = 3
 FINISH = 4
 
+codeLookup = {
+    0: "REQUEST_NEW_DEGREE",
+    1: "NEW_DEGREE",
+    2: "NEW_GB_DEPOSITED",
+    3: "SYNC",
+    4: "FINISH",
+}
+
 class grobner:
     def __init__(self, gens):
         self.comm = MPI.COMM_WORLD
@@ -25,17 +33,20 @@ class grobner:
         print "I'm a node! I'm number %d!" % self.comm.Get_rank()
         self.comm.Barrier() # Wait for Control to load SQL first.
         self.sql=sql()
-
+        debugHeader = "Node %d:\t\t" % self.comm.Get_rank()
         while True:
             status = MPI.Status()
+            print debugHeader, "Sending REQUEST to 0"
             self.comm.send(None,dest=0,tag=REQUEST_NEW_DEGREE)
             degree = self.comm.recv(source=0,tag=MPI.ANY_TAG,status=status)
+            print debugHeader, "Received from 0: tag: %s" % codeLookup[status.Get_tag()]
             if status.Get_tag() == SYNC:
-                print "Waiting to sync..."
+                print debugHeader, "Waiting to sync..."
                 degree = self.comm.recv(source=0,tag=MPI.ANY_TAG,status=status)
-                if status.Get_tag() == FINISH:
-                    print "Finishing..."
-                    return
+                print debugHeader, "Received from 0: tag: %s" % codeLookup[status.Get_tag()]
+            if status.Get_tag() == FINISH:
+                print debugHeader, "Finishing..."
+                return
             if status.Get_tag() == NEW_DEGREE:
                 self.nodeWork(degree)
 
@@ -43,14 +54,10 @@ class grobner:
         candidates = self.sql.loadNew(degree)
         gb = self.sql.loadStableBelow(degree)
         
-        print "Computation on degree %s" % repr(degree)
         doneList = []
 
         for c in candidates:
-            #print "\tReducing: %s" % repr(c)
-            #print "\tUsing: %s" % repr(gb)
             cc = c.reduce(gb)
-            #print "\tTo: %s" % repr(cc)
             if cc == 0: 
                 continue
 
@@ -60,8 +67,6 @@ class grobner:
         lms = self.sql.storeStable(doneList)
         self.sql.dropNew([degree])
 
-        print "\tNew GB elements: %d" % len(lms)
-        
         self.comm.send(lms, dest=0, tag=NEW_GB_DEPOSITED)
             
 
@@ -70,61 +75,89 @@ class grobner:
         self.sql=sql()
         self.comm.Barrier() # Tell Nodes that SQL is loaded.
 
+        debugHeader = "Node 0:\t\t"
+
         self.sql.storeNew(self.gens)
         
         spolyQueue = []
-        waitingQ = []
+        waitingQ = set()
+        assigned = {}
         while True:
             degree = self.sql.findMinimal()
 
-            print "Now treating total degree %s" % repr(degree)
+            print debugHeader, "Now treating total degree %s" % repr(degree)
             if degree != None:
                 alldegs = list(IntegerListsLex(degree,length=self.degwidth))
 
-                if waitingQ != []:
-                    for dest in waitingQ:
-                        self.comm.send(alldesg.pop(), dest=dest, tag=NEW_DEGREE)
-
                 while True:
+                    if len(waitingQ) == self.comm.Get_size()-1 and alldegs == []:
+                        # All are waiting for more to do. Next degree!
+                        break
+
+                    if len(waitingQ) > 0 and alldegs != []:
+                        deg = alldegs.pop()
+                        if repr(deg) in assigned:
+                            continue
+                        dest = waitingQ.pop()
+                        print debugHeader, "Sending to %d new degree %s" % (dest,repr(deg))
+                        self.comm.send(deg, dest=dest, tag=NEW_DEGREE)
+                        assigned[repr(deg)]=repr(dest)
+                        continue
+
                     status = MPI.Status()
                     data = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
                     (tag, source) = (status.Get_tag(), status.Get_source())
+                    print debugHeader, "Received from %d tag %s" % (source, codeLookup[tag])
                     if tag == REQUEST_NEW_DEGREE:
-                        self.comm.send(alldegs.pop(), dest=source,tag=NEW_DEGREE)
-                        if alldegs==[]:
-                            break
+                        if alldegs == []:
+                            self.comm.send(None, dest=dest, tag=SYNC)
+                            waitingQ.add(source)
+                            continue
+
+                        deg = alldegs.pop()
+                        if repr(deg) in assigned:
+                            self.comm.send(None,dest=source,tag=SYNC)
+                            waitingQ.add(source)
+                            continue
+
+                        dest = source
+                        print debugHeader, "Sending to %d new degree %s" % (dest,repr(deg))
+                        self.comm.send(deg, dest=dest,tag=NEW_DEGREE)
+                        assigned[repr(deg)]=dest
                     elif tag == NEW_GB_DEPOSITED:
-                        print "Queueing up for new S-polynomial generation"
-                        #print "\tReceived new GB list: %s" % repr(data)
                         newPolys = self.sql.loadStableByLM(map(eval,data))
-                        print "\tNew GB elements: %d" % len(newPolys)
                         totalPolys = self.sql.loadStableAll()
-                        print "\tTotal GB size: %d" % len(totalPolys)
                         newSP = [p for p in generateSPolys(totalPolys, newPolys)]
-                        print "\tQueued up: %d" % len(newSP)
                         self.sql.storeNew(filter(lambda p: p!=0, newSP))
+                        items=filter(lambda (v,k): v==source, assigned.items())
+                        for (v,k) in items:
+                            del(assigned[k])
             else:
-                print "Degrees exhausted"
+                print debugHeader, "Degrees exhausted"
+                if len(waitingQ) == self.comm.Get_size() - 1:
+                    print debugHeader, "FINISH IT!"
+                    for dest in waitingQ:
+                        self.comm.send(None, dest=dest, tag=FINISH)
+                        print debugHeader, "Sent to %d finish" % dest
+                    gb = self.sql.loadStableAll()
+                    print gb
+                    return
+                    
                 status = MPI.Status()
                 data = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
                 (tag, source) = (status.Get_tag(), status.Get_source())
+                print debugHeader, "Received from %d tag %s" % (source, codeLookup[tag])
                 if tag == NEW_GB_DEPOSITED:
-                    print "Queueing up for new S-polynomial generation"
                     newPolys = self.sql.loadStableByLM(data)
                     oldPolys = self.sql.loadStableAll()
                     newSP = [p for p in generateSPolys(oldPolys, newPolys)]
-                    print "\tQueued up: %d" % len(newSP)
                     self.sql.storeNew(newSP)
+                    items=filter(lambda (v,k): v==source, assigned.items())
+                    for (v,k) in items:
+                        del(assigned[k])
                 else:
                     self.comm.send(None, dest=source, tag=SYNC)
-                    waitingQ.append(source)
-                    print "Added %d to holding pattern queue" % source
-                    if len(waitingQ) == self.comm.Get_size()-1:
-                        print "FINISH IT!"
-                        for dest in waitingQ:
-                            self.comm.send(None, dest=dest, tag=FINISH)
-                        gb = self.sql.loadStableAll()
-                        print gb
-                        return
+                    print debugHeader, "Sent to %d sync" % source
+                    waitingQ.add(source)
                     # Cause the Node to block, waiting for a NEW_DEGREE or a FINISH
                     # message later on. 
