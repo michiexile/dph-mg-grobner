@@ -5,6 +5,7 @@ from mpi4py import MPI
 from mgGrobner import *
 from collections import defaultdict
 from mpiGpsql import *
+from time import strftime
 
 REQUEST_NEW_DEGREE = 0
 NEW_DEGREE = 1
@@ -19,6 +20,9 @@ codeLookup = {
     3: "SYNC",
     4: "FINISH",
 }
+
+def dbgTime():
+	return strftime("%H:%M:%S")
 
 class grobner:
     def __init__(self, gens):
@@ -36,16 +40,16 @@ class grobner:
         debugHeader = "Node %d:\t\t" % self.comm.Get_rank()
         while True:
             status = MPI.Status()
-            print debugHeader, "Sending REQUEST to 0"
+            print dbgTime(), debugHeader, "Sending REQUEST to 0"
             self.comm.send(None,dest=0,tag=REQUEST_NEW_DEGREE)
             degree = self.comm.recv(source=0,tag=MPI.ANY_TAG,status=status)
-            print debugHeader, "Received from 0: tag: %s" % codeLookup[status.Get_tag()]
+            print dbgTime(), debugHeader, "Received from 0: tag: %s" % codeLookup[status.Get_tag()]
             if status.Get_tag() == SYNC:
-                print debugHeader, "Waiting to sync..."
+                print dbgTime(), debugHeader, "Waiting to sync..."
                 degree = self.comm.recv(source=0,tag=MPI.ANY_TAG,status=status)
-                print debugHeader, "Received from 0: tag: %s" % codeLookup[status.Get_tag()]
+                print dbgTime(), debugHeader, "Received from 0: tag: %s" % codeLookup[status.Get_tag()]
             if status.Get_tag() == FINISH:
-                print debugHeader, "Finishing..."
+                print dbgTime(), debugHeader, "Finishing..."
                 return
             if status.Get_tag() == NEW_DEGREE:
                 self.nodeWork(degree)
@@ -85,7 +89,7 @@ class grobner:
         while True:
             degree = self.sql.findMinimal()
 
-            print debugHeader, "Now treating total degree %s" % repr(degree)
+            print dbgTime(), debugHeader, "Now treating total degree %s" % repr(degree)
             if degree != None:
                 alldegs = list(IntegerListsLex(degree,length=self.degwidth))
 
@@ -99,7 +103,7 @@ class grobner:
                         if repr(deg) in assigned:
                             continue
                         dest = waitingQ.pop()
-                        print debugHeader, "Sending to %d new degree %s" % (dest,repr(deg))
+                        print dbgTime(), debugHeader, "Sending to %d new degree %s" % (dest,repr(deg))
                         self.comm.send(deg, dest=dest, tag=NEW_DEGREE)
                         assigned[repr(deg)]=repr(dest)
                         continue
@@ -107,7 +111,7 @@ class grobner:
                     status = MPI.Status()
                     data = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
                     (tag, source) = (status.Get_tag(), status.Get_source())
-                    print debugHeader, "Received from %d tag %s" % (source, codeLookup[tag])
+                    print dbgTime(), debugHeader, "Received from %d tag %s" % (source, codeLookup[tag])
                     if tag == REQUEST_NEW_DEGREE:
                         if alldegs == []:
                             self.comm.send(None, dest=dest, tag=SYNC)
@@ -121,7 +125,7 @@ class grobner:
                             continue
 
                         dest = source
-                        print debugHeader, "Sending to %d new degree %s" % (dest,repr(deg))
+                        print dbgTime(), debugHeader, "Sending to %d new degree %s" % (dest,repr(deg))
                         self.comm.send(deg, dest=dest,tag=NEW_DEGREE)
                         assigned[repr(deg)]=dest
                     elif tag == NEW_GB_DEPOSITED:
@@ -133,12 +137,12 @@ class grobner:
                         for (v,k) in items:
                             del(assigned[k])
             else:
-                print debugHeader, "Degrees exhausted"
+                print dbgTime(), debugHeader, "Degrees exhausted"
                 if len(waitingQ) == self.comm.Get_size() - 1:
-                    print debugHeader, "FINISH IT!"
+                    print dbgTime(), debugHeader, "FINISH IT!"
                     for dest in waitingQ:
                         self.comm.send(None, dest=dest, tag=FINISH)
-                        print debugHeader, "Sent to %d finish" % dest
+                        print dbgTime(), debugHeader, "Sent to %d finish" % dest
                     gb = self.sql.loadStableAll()
                     print gb
                     return
@@ -146,7 +150,7 @@ class grobner:
                 status = MPI.Status()
                 data = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
                 (tag, source) = (status.Get_tag(), status.Get_source())
-                print debugHeader, "Received from %d tag %s" % (source, codeLookup[tag])
+                print dbgTime(), debugHeader, "Received from %d tag %s" % (source, codeLookup[tag])
                 if tag == NEW_GB_DEPOSITED:
                     newPolys = self.sql.loadStableByLM(data)
                     oldPolys = self.sql.loadStableAll()
@@ -157,7 +161,7 @@ class grobner:
                         del(assigned[k])
                 else:
                     self.comm.send(None, dest=source, tag=SYNC)
-                    print debugHeader, "Sent to %d sync" % source
+                    print dbgTime(), debugHeader, "Sent to %d sync" % source
                     waitingQ.add(source)
                     # Cause the Node to block, waiting for a NEW_DEGREE or a FINISH
                     # message later on. 
