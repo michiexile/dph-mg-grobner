@@ -9,12 +9,12 @@ class sql:
         self.engine = create_engine("sqlite:////tmp/mpigrobner.db", echo=False)
         self.metadata = MetaData()
         self.stable = Table('stable', self.metadata, 
-                       Column('leadingmonomial', String(100), primary_key=True),
-                       Column('degree', String(100), nullable=False), 
+                       Column('leadingmonomial', String(1000), primary_key=True),
+                       Column('degree', String(1000), nullable=False), 
                        Column('poly', PickleType(),nullable=False))
         self.new = Table('new', self.metadata, 
-                    Column('leadingmonomial', String(100)),
-                    Column('degree', String(100),nullable=False), 
+                    Column('leadingmonomial', String(1000)),
+                    Column('degree', String(1000),nullable=False), 
                     Column('poly', PickleType(),nullable=False))
         self.metadata.create_all(self.engine)
         self.metadata.bind = self.engine
