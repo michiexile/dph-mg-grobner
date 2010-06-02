@@ -3,6 +3,25 @@
 from mgGrobner import *
 from sqlalchemy import *
 from sage.all import *
+import zlib
+import pickle
+
+class CompressedPickle(types.TypeDecorator):
+    impl = types.PickleType
+
+    def process_bind_param(self, value, dialect):
+        value = pickle.dumps(value, -1)
+        value = zlib.compress(value, 9)
+        return value
+
+    def process_result_value(self, value, dialect):
+        value = zlib.decompress(value)
+        value = pickle.loads(value)
+        return value
+
+    def copy(self):
+        return CompressedPickle(self.impl.length)
+
 
 class sql:
     def __init__(self):
@@ -11,11 +30,11 @@ class sql:
         self.stable = Table('stable', self.metadata, 
                        Column('leadingmonomial', String(1000), primary_key=True),
                        Column('degree', String(1000), nullable=False), 
-                       Column('poly', PickleType(),nullable=False))
+                       Column('poly', CompressedPickle(),nullable=False))
         self.new = Table('new', self.metadata, 
                     Column('leadingmonomial', String(1000)),
                     Column('degree', String(1000),nullable=False), 
-                    Column('poly', PickleType(),nullable=False))
+                    Column('poly', CompressedPickle(),nullable=False))
         self.metadata.create_all(self.engine)
         self.metadata.bind = self.engine
 
