@@ -32,7 +32,7 @@ install_sage() {
   fi
   ln -s /opt/$version /opt/sage
   ln -s /opt/sage/sage /usr/local/bin/
-  sed -i "s:....:/opt/sage:" /opt/sage/sage
+  sed -i "s:\.\.\.\.\.:/opt/sage:" /opt/sage/sage
   /opt/sage/sage -optional
   /opt/sage/sage -i openmpi
   /opt/sage/sage -i mpi4py
