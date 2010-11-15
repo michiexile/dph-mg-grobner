@@ -26,7 +26,7 @@ class CompressedPickle(sqlalchemy.types.TypeDecorator):
 
 class sql:
     def __init__(self):
-        self.engine = create_engine("mysql://mpi:mpi@localhost/grobner", echo=False)
+        self.engine = create_engine("mysql://grobner:aDeom4ai@localhost/grobner", echo=False)
         self.metadata = MetaData()
         self.stable = Table('stable', self.metadata, 
                        Column('leadingmonomial', String(1000), primary_key=True),
