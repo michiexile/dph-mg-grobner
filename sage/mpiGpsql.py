@@ -5,9 +5,10 @@ from sqlalchemy import *
 from sage.all import *
 import zlib
 import pickle
+import sqlalchemy
 
-class CompressedPickle(types.TypeDecorator):
-    impl = types.PickleType
+class CompressedPickle(sqlalchemy.types.TypeDecorator):
+    impl = sqlalchemy.types.PickleType
 
     def process_bind_param(self, value, dialect):
         value = pickle.dumps(value, -1)
@@ -25,7 +26,7 @@ class CompressedPickle(types.TypeDecorator):
 
 class sql:
     def __init__(self):
-        self.engine = create_engine("sqlite:////tmp/mpigrobner.db", echo=False)
+        self.engine = create_engine("mysql://mpi:mpi@localhost/grobner", echo=False)
         self.metadata = MetaData()
         self.stable = Table('stable', self.metadata, 
                        Column('leadingmonomial', String(1000), primary_key=True),
