@@ -2,7 +2,9 @@
 
 MYSQLUSER=grobner
 MYSQLPW=aDeom4ai
-SIZE=3
+SIZE=4
+NTIMES=2
+NPROC=4
 
 function cleanup {
   echo "Cleaning..."
@@ -11,14 +13,14 @@ function cleanup {
 
 function run {
   echo "Running $1 processors..."
-  TMPSTR=`mktemp XXXXXXXX`
-  [[ $1 -eq 1 ]] && python timingtest.py $SIZE | tee -a TMPSTR-1.log
-  [[ $1 -gt 1 ]] && mpirun -np $1 python mpi2.py $SIZE | tee -a TMPSTR-$1.log
+  TMPSTR=`mktemp log-$1-XXXXXXXXX`
+  [[ $1 -eq 1 ]] && python timingtest.py $SIZE | tee -a $TMPSTR
+  [[ $1 -gt 1 ]] && mpirun -np $1 python mpi2.py $SIZE | tee -a $TMPSTR
 }
 
-for i in 1 2 3 4
+for i in `seq 1 $NTIMES`
 do
-    for np in 1 2 3 4
+    for np in `seq 1 $NPROC`
     do
         cleanup
         run $np
