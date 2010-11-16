@@ -34,7 +34,7 @@ class grobner:
         self.degwidth = len(multidegree(gens[0]))
 
     def node(self):
-        print "I'm a node! I'm number %d!" % self.comm.Get_rank()
+        #print "I'm a node! I'm number %d!" % self.comm.Get_rank()
         self.comm.Barrier() # Wait for Control to load SQL first.
         self.sql=sql()
         debugHeader = "Node %d:\t\t" % self.comm.Get_rank()
@@ -75,7 +75,7 @@ class grobner:
             
 
     def control(self):
-        print "I'm control. We'll deal with: %s" % repr(self.gens)
+        #print "I'm control. We'll deal with: %s" % repr(self.gens)
         self.sql=sql()
         self.comm.Barrier() # Tell Nodes that SQL is loaded.
 
@@ -89,7 +89,7 @@ class grobner:
         while True:
             degree = self.sql.findMinimal()
 
-            print dbgTime(), debugHeader, "Now treating total degree %s" % repr(degree)
+            #print dbgTime(), debugHeader, "Now treating total degree %s" % repr(degree)
             if degree != None:
                 alldegs = list(IntegerListsLex(degree,length=self.degwidth))
 
@@ -103,7 +103,7 @@ class grobner:
                         if repr(deg) in assigned:
                             continue
                         dest = waitingQ.pop()
-                        print dbgTime(), debugHeader, "Sending to queued %d new degree %s" % (dest,repr(deg))
+                        #print dbgTime(), debugHeader, "Sending to queued %d new degree %s" % (dest,repr(deg))
                         self.comm.send(deg, dest=dest, tag=NEW_DEGREE)
                         assigned[repr(deg)]=repr(dest)
                         continue
@@ -111,26 +111,26 @@ class grobner:
                     status = MPI.Status()
                     data = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
                     (tag, source) = (status.Get_tag(), status.Get_source())
-                    print dbgTime(), debugHeader, "Received from %d tag %s" % (source, codeLookup[tag])
+                    #print dbgTime(), debugHeader, "Received from %d tag %s" % (source, codeLookup[tag])
                     if tag == REQUEST_NEW_DEGREE:
                         if alldegs == []:
-                            print dbgTime(), debugHeader, "Request from %d. No queue. Sent SYNC." % source
+                            #print dbgTime(), debugHeader, "Request from %d. No queue. Sent SYNC." % source
                             self.comm.send(None, dest=source, tag=SYNC)
                             waitingQ.add(source)
                             continue
 
                         deg = alldegs.pop()
                         if repr(deg) in assigned:
-                            print dbgTime(), debugHeader, "Request from %d. Next degree already assigned. Should not happen. Sent SYNC." % source
+                            #print dbgTime(), debugHeader, "Request from %d. Next degree already assigned. Should not happen. Sent SYNC." % source
                             self.comm.send(None,dest=source,tag=SYNC)
                             waitingQ.add(source)
                             continue
 
-                        print dbgTime(), debugHeader, "Sending to %d new degree %s" % (source,repr(deg))
+                        #print dbgTime(), debugHeader, "Sending to %d new degree %s" % (source,repr(deg))
                         self.comm.send(deg, dest=source,tag=NEW_DEGREE)
                         assigned[repr(deg)]=source
                     elif tag == NEW_GB_DEPOSITED:
-                        print dbgTime(), debugHeader, "Received new GB from %d." % source
+                        #print dbgTime(), debugHeader, "Received new GB from %d." % source
                         newPolys = self.sql.loadStableByLM(map(eval,data))
                         totalPolys = self.sql.loadStableAll()
                         newSP = [p for p in generateSPolys(totalPolys, newPolys)]
@@ -139,22 +139,22 @@ class grobner:
                         for (v,k) in items:
                             del(assigned[k])
             else:
-                print dbgTime(), debugHeader, "Degrees exhausted"
+                #print dbgTime(), debugHeader, "Degrees exhausted"
                 if len(waitingQ) == self.comm.Get_size() - 1:
-                    print dbgTime(), debugHeader, "FINISH IT!"
+                    #print dbgTime(), debugHeader, "FINISH IT!"
                     for dest in waitingQ:
                         self.comm.send(None, dest=dest, tag=FINISH)
-                        print dbgTime(), debugHeader, "Sent to %d finish" % dest
-                    gb = self.sql.loadStableAll()
-                    print gb
+                        #print dbgTime(), debugHeader, "Sent to %d finish" % dest
+                    #gb = self.sql.loadStableAll()
+                    #print gb
                     return
                     
                 status = MPI.Status()
                 data = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
                 (tag, source) = (status.Get_tag(), status.Get_source())
-                print dbgTime(), debugHeader, "Received from %d tag %s" % (source, codeLookup[tag])
+                #print dbgTime(), debugHeader, "Received from %d tag %s" % (source, codeLookup[tag])
                 if tag == NEW_GB_DEPOSITED:
-                    print dbgTime(), debugHeader, "Received new GB from %d while in holding pattern." % source
+                    #print dbgTime(), debugHeader, "Received new GB from %d while in holding pattern." % source
                     newPolys = self.sql.loadStableByLM(data)
                     oldPolys = self.sql.loadStableAll()
                     newSP = [p for p in generateSPolys(oldPolys, newPolys)]
@@ -164,7 +164,7 @@ class grobner:
                         del(assigned[k])
                 else:
                     self.comm.send(None, dest=source, tag=SYNC)
-                    print dbgTime(), debugHeader, "Sent to %d sync" % source
+                    #print dbgTime(), debugHeader, "Sent to %d sync" % source
                     waitingQ.add(source)
                     # Cause the Node to block, waiting for a NEW_DEGREE or a FINISH
                     # message later on. 

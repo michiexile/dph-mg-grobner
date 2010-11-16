@@ -17,6 +17,7 @@ def main():
     g = serialGrobner.grobner(gens)
     tstart = time.time()
     g.run()
+    print "Grobner basis length: %d" % len(g.gb)
     tstop = time.time()
     print "Process executed in %02f s" % (tstop-tstart)
 

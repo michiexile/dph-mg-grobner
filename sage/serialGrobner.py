@@ -3,6 +3,8 @@
 from sage.all import *
 from collections import defaultdict
 from time import strftime
+from mgGrobner import *
+from mpiGpsql import *
 
 REQUEST_NEW_DEGREE = 0
 NEW_DEGREE = 1
@@ -24,29 +26,32 @@ def dbgTime():
 class grobner:
     def __init__(self, gens):
         self.gens = gens
-	self.gb = []
+        self.gb = []
 
     def run(self):
         new = self.gens
         old = []
         mid = []
-	    while not new.empty():
-		    # generate S-polynomials
-		    candidates = [ p for p in generateSPolys(old + mid,new) ]
-		    mindeg = min([p.degree() for p in candidates])
+        while len(new) > 0:
+            # generate S-polynomials
+            candidates = [ p for p in generateSPolys(old + mid,new) ]
+            if len(candidates) == 0: mindeg = 0
+            else:
+                mindeg = min([p.degree() for p in candidates])
 
-		    # reduce S-polynomials
-		    rnew = []
-		    for c in candidates:
-			    cc = c.reduce(gb)
-			    if cc == 0:
-				    continue
-			    rnew.append(cc)
+            # reduce S-polynomials
+            rnew = []
+            for c in candidates:
+                cc = c.reduce(gb)
+                if cc == 0:
+                    continue
+                rnew.append(cc)
 
             # update lists
-            old = old + [p for p in mid if deg(p) < mindeg]
+            old = old + [p for p in mid if p.degree() < mindeg]
             mid += new
-            mid = [p for p in mid if deg(p) >= mindeg]
+            mid = [p for p in mid if p.degree() >= mindeg]
             mid = [p for p in [q.reduce(rnew) for q in mid] if p != 0]
-			new = rnew
-	self.gb = old + mid
+            new = rnew
+            print len(old), len(mid), len(new)
+        self.gb = old + mid
