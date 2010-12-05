@@ -40,7 +40,7 @@ class grobner:
         self.assigned = None
         self.running = None
     
-    def debug(dbgstr):
+    def debug(self,dbgstr):
         print dbgTime(), self.debugHeader, dbgstr
     
     def node(self):
