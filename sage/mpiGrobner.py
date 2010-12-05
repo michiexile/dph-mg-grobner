@@ -158,7 +158,7 @@ class grobner:
 
     def controlSendSync(self,dest):
         self.comm.send(None, dest=dest, tag=SYNC)
-        self.waitingQ.add(source)
+        self.waitingQ.add(dest)
 
     def controlGenerateSPoly(self,source,data):
         newPolys = self.sql.loadStableByLM(map(eval,data))
@@ -193,7 +193,7 @@ class grobner:
                 del(assigned[k])
         else: # We have nothing more to give. Go wait for news.
             self.comm.send(None, dest=source, tag=SYNC)
-            print dbgTime(), debugHeader, "Sent to %d sync" % source
+            self.debug("Sent to %d sync" % source)
             self.waitingQ.add(source)
             # Cause the Node to block, waiting for a NEW_DEGREE or a FINISH
             # message later on. 
