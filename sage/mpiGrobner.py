@@ -71,7 +71,7 @@ class grobner:
     
     def nodeChooseAction(self):
         if self.status.Get_tag() == SYNC:
-            nodeSync()
+            self.nodeSync()
         elif self.status.Get_tag() == FINISH:
             self.debug("Finishing...")
             self.running = False
