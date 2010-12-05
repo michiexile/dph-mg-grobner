@@ -5,7 +5,7 @@ from mpi4py import MPI
 from mgGrobner import *
 from collections import defaultdict
 from mpiGpsql import *
-from time import strftime
+from time import strftime, time
 
 REQUEST_NEW_DEGREE = 0
 NEW_DEGREE = 1
@@ -67,9 +67,9 @@ class grobner:
     
     def nodeSync(self):
         self.debug("Waiting to sync...")
-        self.lastsleep = time.time()
+        self.lastsleep = time()
         self.degree = self.comm.recv(source=0,tag=MPI.ANY_TAG,status=self.status)
-        self.synctime += time.time() - self.lastsleep
+        self.synctime += time() - self.lastsleep
         self.debug("Received from 0: tag: %s" % codeLookup[self.status.Get_tag()])
         self.nodeChooseAction()
     
