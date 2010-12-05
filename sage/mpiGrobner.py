@@ -46,9 +46,9 @@ class grobner:
     def node(self):
         self.nodeSetup()
         while self.running:
-            status = MPI.Status()
+            self.status = MPI.Status()
             self.nodeStartloop()
-            self.nodeChooseAction(status)
+            self.nodeChooseAction()
     
     def nodeSetup(self):
         print "I'm a node! I'm number %d!" % self.comm.Get_rank()
@@ -60,22 +60,22 @@ class grobner:
     def nodeStartloop(self):
         self.debug("Sending REQUEST to 0")
         self.comm.send(None,dest=0,tag=REQUEST_NEW_DEGREE)
-        self.degree = self.comm.recv(source=0,tag=MPI.ANY_TAG,status=status)
-        self.debug("Received from 0: tag: %s" % codeLookup[status.Get_tag()])
+        self.degree = self.comm.recv(source=0,tag=MPI.ANY_TAG,status=self.status)
+        self.debug("Received from 0: tag: %s" % codeLookup[self.status.Get_tag()])
     
     def nodeSync(self):
         self.debug("Waiting to sync...")
-        self.degree = self.comm.recv(source=0,tag=MPI.ANY_TAG,status=status)
-        self.debug("Received from 0: tag: %s" % codeLookup[status.Get_tag()])
-        self.nodeChooseAction(status)
+        self.degree = self.comm.recv(source=0,tag=MPI.ANY_TAG,status=self.status)
+        self.debug("Received from 0: tag: %s" % codeLookup[self.status.Get_tag()])
+        self.nodeChooseAction()
     
-    def nodeChooseAction(self, status):
-        if status.Get_tag() == SYNC:
+    def nodeChooseAction(self):
+        if self.status.Get_tag() == SYNC:
             nodeSync()
-        elif status.Get_tag() == FINISH:
+        elif self.status.Get_tag() == FINISH:
             self.debug("Finishing...")
             self.running = False
-        elif status.Get_tag() == NEW_DEGREE:
+        elif self.status.Get_tag() == NEW_DEGREE:
             self.nodeWork(self.degree)
         
     def nodeWork(self, degree):
@@ -125,9 +125,9 @@ class grobner:
                 continue
             # Or we have either no waiting processes, or no degrees, thus need
             # feedback from our slaves before we can do anything else.
-            status = MPI.Status()
-            data = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
-            (tag, source) = (status.Get_tag(), status.Get_source())
+            self.status = MPI.Status()
+            data = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=self.status)
+            (tag, source) = (self.status.Get_tag(), self.status.Get_source())
             self.debug("Received from %d tag %s" % (source, codeLookup[tag]))
             if tag == REQUEST_NEW_DEGREE:
                 if self.alldegs == []: # We have nothing to send
@@ -179,9 +179,9 @@ class grobner:
             gb = self.sql.loadStableAll()
             print gb
             self.running = False
-        status = MPI.Status()
-        data = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
-        (tag, source) = (status.Get_tag(), status.Get_source())
+        self.status = MPI.Status()
+        data = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=self.status)
+        (tag, source) = (self.status.Get_tag(), self.status.Get_source())
         self.debug("Received from %d tag %s" % (source, codeLookup[tag]))
         if tag == NEW_GB_DEPOSITED: # We can generate new tasks!
             newPolys = self.sql.loadStableByLM(data)
