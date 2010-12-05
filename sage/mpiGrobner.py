@@ -39,9 +39,10 @@ class grobner:
         self.waitingQ = None
         self.assigned = None
         self.running = None
-        self.synctime = 0
         self.lastsleep = None
+        self.synctime = 0
         self.sqltime = 0
+        self.spolytime = 0
     
     def debug(self,dbgstr):
         print dbgTime(), self.debugHeader, dbgstr
@@ -146,7 +147,7 @@ class grobner:
                     continue
                 self.controlSendDegree(source)
             elif tag == NEW_GB_DEPOSITED:
-                self.controlGenerateSPoly(source, data)
+                self.controlGenerateSPoly(source, map(eval,data))
 
     def controlSendDegreeFromQ(self):
         deg = self.alldegs.pop()
@@ -172,13 +173,15 @@ class grobner:
         self.waitingQ.add(dest)
 
     def controlGenerateSPoly(self,source,data):
-        newPolys = self.sql.loadStableByLM(map(eval,data))
+        self.lastsleep = time()
+        newPolys = self.sql.loadStableByLM(data)
         totalPolys = self.sql.loadStableAll()
         newSP = [p for p in generateSPolys(totalPolys, newPolys)]
         self.sql.storeNew(filter(lambda p: p!=0, newSP))
         items=filter(lambda (v,k): v==source, self.assigned.items())
         for (v,k) in items:
             del(self.assigned[k])
+        self.spolytime += time()-self.lastsleep
 
     def controlExhausted(self):
         self.debug("Degrees exhausted.")
@@ -196,13 +199,7 @@ class grobner:
         (tag, source) = (self.status.Get_tag(), self.status.Get_source())
         self.debug("Received from %d tag %s" % (source, codeLookup[tag]))
         if tag == NEW_GB_DEPOSITED: # We can generate new tasks!
-            newPolys = self.sql.loadStableByLM(data)
-            oldPolys = self.sql.loadStableAll()
-            newSP = [p for p in generateSPolys(oldPolys, newPolys)]
-            self.sql.storeNew(newSP)
-            items=filter(lambda (v,k): v==source, assigned.items())
-            for (v,k) in items:
-                del(assigned[k])
+            self.controlGenerateSPoly(source, map(eval,data))
         else: # We have nothing more to give. Go wait for news.
             self.comm.send(None, dest=source, tag=SYNC)
             self.debug("Sent to %d sync" % source)
