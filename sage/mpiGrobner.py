@@ -143,7 +143,7 @@ class grobner:
             return
         self.alldegs.append(deg)
         dest = self.waitingQ.pop()
-        self.sendDegree(dest)
+        self.controlSendDegree(dest)
 
     def controlSendDegree(self, dest):
         deg = self.alldegs.pop()
