@@ -112,7 +112,7 @@ class grobner:
         self.running = True
 
     def controlHaveDegree(self):
-        self.alldegs = list(IntegerListsLex(degree,length=self.degwidth))
+        self.alldegs = list(IntegerListsLex(self.degree,length=self.degwidth))
         self.innerloop = True
         
         while self.innerloop:
