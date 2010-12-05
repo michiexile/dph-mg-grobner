@@ -141,7 +141,7 @@ class grobner:
         deg = self.alldegs.pop()
         if repr(deg) in self.assigned:
             return
-        self.alldegs.push(deg)
+        self.alldegs.append(deg)
         dest = self.waitingQ.pop()
         self.sendDegree(dest)
 
