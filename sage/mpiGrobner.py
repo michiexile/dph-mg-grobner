@@ -192,6 +192,7 @@ class grobner:
                 self.debug("Sent to %d finish" % dest)
             gb = self.sql.loadStableAll()
             print gb
+            self.debug("Total S-polynomial time:\t%s" % self.spolytime)
             self.running = False
             return
         self.status = MPI.Status()
