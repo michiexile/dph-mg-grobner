@@ -205,7 +205,7 @@ class grobner:
         while self.running:
             self.degree = self.sql.findMinimal()
 
-            self.debug("Now treating total degree %s" % repr(degree))
+            self.debug("Now treating total degree %s" % repr(self.degree))
             if self.degree != None:
                 self.controlHaveDegree()
             else:
