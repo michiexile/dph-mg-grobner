@@ -117,10 +117,10 @@ class grobner:
         
         while self.innerloop:
             # Either we have all processes waiting for us, and no more degrees
-            if len(waitingQ) == self.comm.Get_size()-1 and self.alldegs == []:
+            if len(self.waitingQ) == self.comm.Get_size()-1 and self.alldegs == []:
                 break
             # Or we have a waiting process and a degree
-            if len(waitingQ) > 0 and self.alldegs != []:
+            if len(self.waitingQ) > 0 and self.alldegs != []:
                 self.controlSendDegreeFromQ()
                 continue
             # Or we have either no waiting processes, or no degrees, thus need
@@ -135,7 +135,7 @@ class grobner:
                     continue
                 self.controlSendDegree(source)
             elif tag == NEW_GB_DEPOSITED:
-                self.controlGenerateSPoly()
+                self.controlGenerateSPoly(source, data)
 
     def controlSendDegreeFromQ(self):
         deg = self.alldegs.pop()
@@ -160,20 +160,20 @@ class grobner:
         self.comm.send(None, dest=dest, tag=SYNC)
         self.waitingQ.add(source)
 
-    def controlGenerateSPoly(self):
+    def controlGenerateSPoly(self,source,data):
         newPolys = self.sql.loadStableByLM(map(eval,data))
         totalPolys = self.sql.loadStableAll()
         newSP = [p for p in generateSPolys(totalPolys, newPolys)]
         self.sql.storeNew(filter(lambda p: p!=0, newSP))
-        items=filter(lambda (v,k): v==source, assigned.items())
+        items=filter(lambda (v,k): v==source, self.assigned.items())
         for (v,k) in items:
-            del(assigned[k])
+            del(self.assigned[k])
 
     def controlExhausted(self):
         self.debug("Degrees exhausted.")
-        if len(waitingQ) == self.comm.Get_size() - 1: # Everyone's waiting
+        if len(self.waitingQ) == self.comm.Get_size() - 1: # Everyone's waiting
             self.debug("FINISH IT!")
-            for dest in waitingQ:
+            for dest in self.waitingQ:
                 self.comm.send(None, dest=dest, tag=FINISH)
                 self.debug("Sent to %d finish" % dest)
             gb = self.sql.loadStableAll()
@@ -194,7 +194,7 @@ class grobner:
         else: # We have nothing more to give. Go wait for news.
             self.comm.send(None, dest=source, tag=SYNC)
             print dbgTime(), debugHeader, "Sent to %d sync" % source
-            waitingQ.add(source)
+            self.waitingQ.add(source)
             # Cause the Node to block, waiting for a NEW_DEGREE or a FINISH
             # message later on. 
         
