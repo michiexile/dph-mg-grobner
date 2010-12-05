@@ -39,6 +39,8 @@ class grobner:
         self.waitingQ = None
         self.assigned = None
         self.running = None
+        self.synctime = 0
+        self.lastsleep = None
     
     def debug(self,dbgstr):
         print dbgTime(), self.debugHeader, dbgstr
@@ -65,7 +67,9 @@ class grobner:
     
     def nodeSync(self):
         self.debug("Waiting to sync...")
+        self.lastsleep = time.time()
         self.degree = self.comm.recv(source=0,tag=MPI.ANY_TAG,status=self.status)
+        self.synctime += time.time() - self.lastsleep
         self.debug("Received from 0: tag: %s" % codeLookup[self.status.Get_tag()])
         self.nodeChooseAction()
     
@@ -74,6 +78,7 @@ class grobner:
             self.nodeSync()
         elif self.status.Get_tag() == FINISH:
             self.debug("Finishing...")
+            self.debug("Total time sync'd:\t%s seconds" % self.synctime)
             self.running = False
         elif self.status.Get_tag() == NEW_DEGREE:
             self.nodeWork(self.degree)
