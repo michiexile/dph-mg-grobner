@@ -179,6 +179,7 @@ class grobner:
             gb = self.sql.loadStableAll()
             print gb
             self.running = False
+            return
         self.status = MPI.Status()
         data = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=self.status)
         (tag, source) = (self.status.Get_tag(), self.status.Get_source())
