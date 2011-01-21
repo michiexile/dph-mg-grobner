@@ -43,6 +43,7 @@ class grobner:
         self.synctime = 0
         self.sqltime = 0
         self.spolytime = 0
+        self.redtime = 0
     
     def debug(self,dbgstr):
         print dbgTime(), self.debugHeader, dbgstr
@@ -82,6 +83,7 @@ class grobner:
             self.debug("Finishing...")
             self.debug("Total time sync'd:\t%s seconds" % self.synctime)
             self.debug("Total time working SQL:\t%s seconds" % self.sqltime)
+            self.debug("Total time reducing:\t%s seconds" % self.redtime)
             self.running = False
         elif self.status.Get_tag() == NEW_DEGREE:
             self.nodeWork(self.degree)
@@ -91,7 +93,8 @@ class grobner:
         candidates = self.sql.loadNew(degree)
         gb = self.sql.loadStableBelow(degree)
         self.sqltime += time() - self.lastsleep
-        
+
+        reducetime = time()
         doneList = []
         
         for c in candidates:
@@ -102,6 +105,7 @@ class grobner:
             gb.append(cc)
             doneList.append(cc)
 
+        self.redtime += time() - reducetime
         self.lastsleep = time()
         lms = self.sql.storeStable(doneList)
         self.sql.dropNew([degree])

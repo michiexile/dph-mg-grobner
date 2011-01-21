@@ -2,9 +2,9 @@
 
 MYSQLUSER=grobner
 MYSQLPW=aDeom4ai
-SIZE=4
-NTIMES=${1:1}
-NPROC=${2:4}
+SIZE=${1:-4}
+NTIMES=${2:-1}
+NPROC=${3:-4}
 
 function cleanup {
   echo "Cleaning..."
