@@ -90,12 +90,14 @@ class sql:
 
     def dropStable(self, lmexs):
         for f in lmexs:
-            delQ = self.stable.delete(self.stable.c.leadingmonomial == f)
+            lm = repr(f.lm().exponents())
+            delQ = self.stable.delete(self.stable.c.leadingmonomial == lm)
             delQ.execute()
 
-    def dropNew(self, degs):
-        for d in degs:
-            delQ = self.new.delete(self.new.c.degree == repr(d))
+    def dropNew(self, lmexs):
+        for f in lmexs:
+            lm = repr(f.lm().exponents())
+            delQ = self.new.delete(self.new.c.leadingmonomial == lm)
             delQ.execute()
 
     def findMinimal(self):

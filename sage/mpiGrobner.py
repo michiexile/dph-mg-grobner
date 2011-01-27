@@ -91,31 +91,40 @@ class grobner:
     def nodeWork(self, degree):
         self.lastsleep = time()
         candidates = self.sql.loadNew(degree)
+        self.sql.dropNew(candidates)
         gb = self.sql.loadStableBelow(degree)
         self.sqltime += time() - self.lastsleep
 
         reducetime = time()
         doneList = []
-        newS = []
 
         for c in candidates:
             cc = c.reduce(gb)
             if cc == 0:
                 continue
-
-            for g in gb:
-                sp = sPoly(g,c)
-                if sp != 0:
-                    newS.append(sp)
                 
             gb.append(cc)
             doneList.append(cc)
 
         self.redtime += time() - reducetime
+        del(candidates)
+        del(gb)
+
         self.lastsleep = time()
-        lms = self.sql.storeStable(doneList)
-        self.sql.dropNew([degree])
+
+        gb = self.sql.loadStableAll()
+
+        self.sqltime += time()-self.lastsleep
+        self.lastsleep = time()
+
+        newS = filter(lambda p: p!= 0, generateSPolys(gb+doneList,doneList))
+
+        self.redtime += time() - self.lastsleep
+        self.lastsleep = time()
+
         self.sql.storeNew(newS)
+        lms = self.sql.storeStable(doneList)
+
         self.sqltime += time() - self.lastsleep
         
         self.comm.send(lms, dest=0, tag=NEW_GB_DEPOSITED)
@@ -198,7 +207,6 @@ class grobner:
         (tag, source) = (self.status.Get_tag(), self.status.Get_source())
         self.debug("Received from %d tag %s" % (source, codeLookup[tag]))
         self.controlUnassign(repr(source))
-        self.debug("Now assigned:\n\t%s" % repr(self.assigned))
         if tag == NEW_GB_DEPOSITED: # We can generate new tasks!
             pass
         else: # Process ready for more. Add to waitingQ. 
