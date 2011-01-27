@@ -1,0 +1,28 @@
+Name:           GrobnerPar
+Version:        0.0.0
+Author:         Jason Dusek
+Author:         Emil Sköldberg
+Author:         Mikael Vejdemo-Johansson
+Build-Type:     Simple
+Cabal-Version:  >= 1.6
+
+
+library
+  build-depends:        base,array,containers,vector,dph-par
+  exposed-modules:      Math.GrobnerPar
+  ghc-options:          -threaded
+
+executable First
+  main-is:              examples/First.hs
+  build-depends:        base,array,containers,vector,dph-par
+  ghc-options:          -threaded
+
+executable Cyclic
+  main-is:              examples/Cyclic.hs
+  build-depends:        base,array,containers,vector,dph-par
+  ghc-options:          -threaded
+
+executable CommutingMatrices
+  main-is:              examples/CommutingMatrices.hs
+  build-depends:        base,array,containers,vector,dph-par
+  ghc-options:          -threaded
