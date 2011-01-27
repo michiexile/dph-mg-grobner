@@ -1,14 +1,15 @@
 #!/bin/bash
+# Usage: <script> <size of problem> <number of processes>
 
 MYSQLUSER=grobner
 MYSQLPW=aDeom4ai
+MYSQLDB=grobner
 SIZE=${1:-4}
-NTIMES=${2:-1}
-NPROC=${3:-4}
+NPROC=${2:-4}
 
 function cleanup {
   echo "Cleaning..."
-  mysql --user=$MYSQLUSER --password=$MYSQLPW grobner --execute="delete from new; delete from stable;"
+  mysql --user=$MYSQLUSER --password=$MYSQLPW $MYSQLDB --execute="delete from new; delete from stable;"
 }
 
 function run {
@@ -18,12 +19,6 @@ function run {
   [[ $1 -gt 1 ]] && mpirun -np $1 python mpi2.py $SIZE | tee -a $TMPSTR
 }
 
-for i in `seq 1 $NTIMES`
-do
-    for np in `seq 2 $NPROC`
-    do
-        cleanup
-        run $np
-    done
-done
+cleanup
+run $NPROC
 
