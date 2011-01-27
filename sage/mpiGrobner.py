@@ -96,12 +96,18 @@ class grobner:
 
         reducetime = time()
         doneList = []
-        
+        newS = []
+
         for c in candidates:
             cc = c.reduce(gb)
             if cc == 0:
                 continue
-            
+
+            for g in gb:
+                sp = sPoly(g,c)
+                if sp != 0:
+                    newS.append(sp)
+                
             gb.append(cc)
             doneList.append(cc)
 
@@ -109,6 +115,7 @@ class grobner:
         self.lastsleep = time()
         lms = self.sql.storeStable(doneList)
         self.sql.dropNew([degree])
+        self.sql.storeNew(newS)
         self.sqltime += time() - self.lastsleep
         
         self.comm.send(lms, dest=0, tag=NEW_GB_DEPOSITED)
@@ -130,32 +137,27 @@ class grobner:
     def controlHaveDegree(self):
         self.alldegs = list(IntegerListsLex(self.degree,length=self.degwidth))
         self.innerloop = True
+
+        self.debug("Working with degrees\n\t%s" % repr(self.alldegs))
         
         while self.innerloop:
             # Either we have all processes waiting for us, and no more degrees
             if len(self.waitingQ) == self.comm.Get_size()-1 and self.alldegs == []:
+                self.debug("Exhausted.\n\tWaiting: %s\n\tDegrees: %s" % (repr(self.waitingQ),repr(self.alldegs)))
                 break
             # Or we have a waiting process and a degree
             if len(self.waitingQ) > 0 and self.alldegs != []:
+                self.debug("Sending next degree.\n\tWaiting: %s\n\tDegrees: %s" % (repr(self.waitingQ),repr(self.alldegs)))
                 self.controlSendDegreeFromQ()
                 continue
             # Or we have either no waiting processes, or no degrees, thus need
             # feedback from our slaves before we can do anything else.
-            self.status = MPI.Status()
-            data = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=self.status)
-            (tag, source) = (self.status.Get_tag(), self.status.Get_source())
-            self.debug("Received from %d tag %s" % (source, codeLookup[tag]))
-            if tag == REQUEST_NEW_DEGREE:
-                if self.alldegs == []: # We have nothing to send
-                    self.controlSendSync(source)
-                    continue
-                self.controlSendDegree(source)
-            elif tag == NEW_GB_DEPOSITED:
-                self.controlGenerateSPoly(source, map(eval,data))
+            self.controlReceive()
 
     def controlSendDegreeFromQ(self):
         deg = self.alldegs.pop()
         if repr(deg) in self.assigned:
+            self.debug("Already assigned degree %s:\n\t%s" % (repr(deg),repr(self.assigned)))
             return
         self.alldegs.append(deg)
         dest = self.waitingQ.pop()
@@ -182,10 +184,30 @@ class grobner:
         totalPolys = self.sql.loadStableAll()
         newSP = [p for p in generateSPolys(totalPolys, newPolys)]
         self.sql.storeNew(filter(lambda p: p!=0, newSP))
-        items=filter(lambda (v,k): v==source, self.assigned.items())
-        for (v,k) in items:
-            del(self.assigned[k])
+        self.controlUnassign(self,repr(source))
         self.spolytime += time()-self.lastsleep
+
+    def controlUnassign(self,source):
+        items=filter(lambda (v,k): k==source, self.assigned.items())
+        for (v,k) in items:
+            del(self.assigned[v])
+
+    def controlReceive(self):
+        self.status = MPI.Status()
+        data = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=self.status)
+        (tag, source) = (self.status.Get_tag(), self.status.Get_source())
+        self.debug("Received from %d tag %s" % (source, codeLookup[tag]))
+        self.controlUnassign(repr(source))
+        self.debug("Now assigned:\n\t%s" % repr(self.assigned))
+        if tag == NEW_GB_DEPOSITED: # We can generate new tasks!
+            pass
+        else: # Process ready for more. Add to waitingQ. 
+            self.comm.send(None, dest=source, tag=SYNC)
+            self.debug("Sent to %d sync" % source)
+            self.waitingQ.add(source)
+            # Cause the Node to block, waiting for a NEW_DEGREE or a FINISH
+            # message later on. 
+
 
     def controlExhausted(self):
         self.debug("Degrees exhausted.")
@@ -199,18 +221,7 @@ class grobner:
             self.debug("Total S-polynomial time:\t%s" % self.spolytime)
             self.running = False
             return
-        self.status = MPI.Status()
-        data = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=self.status)
-        (tag, source) = (self.status.Get_tag(), self.status.Get_source())
-        self.debug("Received from %d tag %s" % (source, codeLookup[tag]))
-        if tag == NEW_GB_DEPOSITED: # We can generate new tasks!
-            self.controlGenerateSPoly(source, map(eval,data))
-        else: # We have nothing more to give. Go wait for news.
-            self.comm.send(None, dest=source, tag=SYNC)
-            self.debug("Sent to %d sync" % source)
-            self.waitingQ.add(source)
-            # Cause the Node to block, waiting for a NEW_DEGREE or a FINISH
-            # message later on. 
+        self.controlReceive()
         
         
 
