@@ -42,8 +42,8 @@ class grobner:
         self.lastsleep = None
         self.synctime = 0
         self.sqltime = 0
-        self.spolytime = 0
         self.redtime = 0
+        self.gentime = 0
     
     def debug(self,dbgstr):
         print dbgTime(), self.debugHeader, dbgstr
@@ -84,6 +84,7 @@ class grobner:
             self.debug("Total time sync'd:\t%s seconds" % self.synctime)
             self.debug("Total time working SQL:\t%s seconds" % self.sqltime)
             self.debug("Total time reducing:\t%s seconds" % self.redtime)
+            self.debug("Total time generating:\t%s seconds" % self.gentime)
             self.running = False
         elif self.status.Get_tag() == NEW_DEGREE:
             self.nodeWork(self.degree)
@@ -119,7 +120,7 @@ class grobner:
 
         newS = filter(lambda p: p!= 0, generateSPolys(gb+doneList,doneList))
 
-        self.redtime += time() - self.lastsleep
+        self.gentime += time() - self.lastsleep
         self.lastsleep = time()
 
         self.sql.storeNew(newS)
@@ -187,14 +188,6 @@ class grobner:
         self.comm.send(None, dest=dest, tag=SYNC)
         self.waitingQ.add(dest)
 
-    def controlGenerateSPoly(self,source,data):
-        self.lastsleep = time()
-        newPolys = self.sql.loadStableByLM(data)
-        totalPolys = self.sql.loadStableAll()
-        newSP = [p for p in generateSPolys(totalPolys, newPolys)]
-        self.sql.storeNew(filter(lambda p: p!=0, newSP))
-        self.controlUnassign(self,repr(source))
-        self.spolytime += time()-self.lastsleep
 
     def controlUnassign(self,source):
         items=filter(lambda (v,k): k==source, self.assigned.items())
@@ -226,7 +219,6 @@ class grobner:
                 self.debug("Sent to %d finish" % dest)
             gb = self.sql.loadStableAll()
             print gb
-            self.debug("Total S-polynomial time:\t%s" % self.spolytime)
             self.running = False
             return
         self.controlReceive()
