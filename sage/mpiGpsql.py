@@ -7,8 +7,14 @@ import zlib
 import pickle
 import sqlalchemy
 
-class CompressedPickle(sqlalchemy.types.TypeDecorator):
-    impl = sqlalchemy.types.PickleType
+class CompressedPickle(sqlalchemy.types.PickleType):
+    impl = sqlalchemy.types.LargeBinary
+
+    def load_dialect_impl(self, dialect):
+	    if dialect.name == 'mysql':
+		    return sqlalchemy.dialects.mysql.base.LONGBLOB()
+	    else:
+		    return self.impl
 
     def process_bind_param(self, value, dialect):
         value = pickle.dumps(value, -1)
