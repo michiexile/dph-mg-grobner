@@ -113,18 +113,18 @@ class grobner:
 
         self.lastsleep = time()
 
+        lms = self.sql.storeStable(doneList)
         gb = self.sql.loadStableAll()
 
         self.sqltime += time()-self.lastsleep
         self.lastsleep = time()
 
-        newS = filter(lambda p: p!= 0, generateSPolys(gb+doneList,doneList))
+        newS = filter(lambda p: p!= 0, generateSPolys(gb,doneList))
 
         self.gentime += time() - self.lastsleep
         self.lastsleep = time()
 
         self.sql.storeNew(newS)
-        lms = self.sql.storeStable(doneList)
 
         self.sqltime += time() - self.lastsleep
         
