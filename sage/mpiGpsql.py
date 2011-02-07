@@ -89,6 +89,13 @@ class sql:
         selects.close()
         return ret
 
+    def loadNewAll(self):
+	sel = select([self.new.c.poly])
+	selects = sel.execute()
+	ret = [s[self.stable.c.poly] for s in selects]
+	return ret
+
+
     def dropStable(self, lmexs):
         for f in lmexs:
             lm = repr(f.lm().exponents())

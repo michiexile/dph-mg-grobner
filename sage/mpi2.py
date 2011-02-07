@@ -6,18 +6,11 @@ import sys
 import time
 
 import mpiGrobner
-import commutingMatrices
-
 
 def main():
-    if len(sys.argv) < 2:
-        size=3
-    else:
-        size=int(sys.argv[1])
-    (R, gens) = commutingMatrices.start(size)
     comm = MPI.COMM_WORLD
     myid = comm.Get_rank()
-    g = mpiGrobner.grobner(gens)
+    g = mpiGrobner.grobner()
     tstart = time.time()
     if myid == 0:
         g.control()
