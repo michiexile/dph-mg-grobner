@@ -6,6 +6,7 @@ MYSQLPW=aDeom4ai
 MYSQLDB=grobner
 SIZE=${1:-4}
 NPROC=${2:-4}
+PROBLEM=${3:-commutingMatrices.py $SIZE}
 
 function cleanup {
   echo "Cleaning..."
@@ -15,6 +16,7 @@ function cleanup {
 function run {
   echo "Running $1 processors..."
   TMPSTR=`mktemp log-$1-XXXXXXXXX`
+  python $PROBLEM
   [[ $1 -eq 1 ]] && python timingtest.py $SIZE | tee -a $TMPSTR
   [[ $1 -gt 1 ]] && mpirun -np $1 python mpi2.py $SIZE | tee -a $TMPSTR
 }

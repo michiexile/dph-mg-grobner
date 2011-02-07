@@ -25,13 +25,13 @@ def dbgTime():
 	return strftime("%H:%M:%S")
 
 class grobner:
-    def __init__(self, gens):
+    def __init__(self):
         self.comm = MPI.COMM_WORLD
-        self.gens = gens
+        self.gens = None
         self.stable = defaultdict(dict)
         self.new = defaultdict(dict)
         self.sql = None
-        self.degwidth = len(multidegree(gens[0]))
+        self.degwidth = 0
         self.debugHeader = "Uninitialized:\t\t"
         self.degree = None
         self.running = None
@@ -131,13 +131,14 @@ class grobner:
         self.comm.send(lms, dest=0, tag=NEW_GB_DEPOSITED)
     
     def controlSetup(self):
-        print "I'm control. We'll deal with: %s" % repr(self.gens)
         self.sql=sql()
         self.comm.Barrier() # Tell Nodes that SQL is loaded.
         
         self.debugHeader = "Node 0:\t\t"
         
-        self.sql.storeNew(self.gens)
+        self.gens = self.sql.loadNewAll()
+        self.degwidth = len(multidegree(gens[0]))
+        print "I'm control. We'll deal with: %s" % repr(self.gens)
         
         self.spolyQueue = []
         self.waitingQ = set()
