@@ -137,7 +137,7 @@ class grobner:
         self.debugHeader = "Node 0:\t\t"
         
         self.gens = self.sql.loadNewAll()
-        self.degwidth = len(multidegree(gens[0]))
+        self.degwidth = len(multidegree(self.gens[0]))
         print "I'm control. We'll deal with: %s" % repr(self.gens)
         
         self.spolyQueue = []
